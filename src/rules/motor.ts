@@ -1,0 +1,1181 @@
+// ============================================================
+// Motor de reglas de validación (v1)
+// ============================================================
+//
+// Este archivo compara los datos extraídos de factura y packing list
+// y genera:
+//   - validaciones: reglas aplicadas (ok, discrepancia, no_comprobable)
+//   - advertencias: avisos sobre calidad de los datos (confianza baja)
+//
+// Es código PURO: no depende de IA, no llama a ninguna API.
+// ============================================================
+
+import {
+  CampoTexto,
+  CampoNumero,
+  CampoImporte,
+  CampoMagnitud,
+  FacturaComercial,
+  PackingList,
+  LineaFactura,
+  Validacion,
+  Severidad,
+  ResultadoValidacion,
+} from "../types/documentos.js";
+
+// ------------------------------------------------------------
+// Configuración de tolerancias (fijas en v1)
+// ------------------------------------------------------------
+
+const TOLERANCIA_PESO_PORCENTAJE = 0.005; // 0.5%
+const TOLERANCIA_IMPORTE_ABSOLUTA = 0.01;
+
+// ------------------------------------------------------------
+// Utilidades
+// ------------------------------------------------------------
+
+function tieneTexto(campo: CampoTexto | null | undefined): boolean {
+  return !!campo && campo.valor !== null && campo.valor.trim() !== "";
+}
+
+function tieneNumero(campo: CampoNumero | null | undefined): boolean {
+  return !!campo && campo.valor !== null;
+}
+
+function tieneImporte(campo: CampoImporte | null | undefined): boolean {
+  return !!campo && campo.importe !== null;
+}
+
+function tieneMagnitud(campo: CampoMagnitud | null | undefined): boolean {
+  return !!campo && campo.valor !== null;
+}
+
+function normalizarTexto(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.,;:()\-/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function textosEquivalentes(a: string, b: string): boolean {
+  return normalizarTexto(a) === normalizarTexto(b);
+}
+
+function numerosDentroDeToleranciaPorcentual(
+  a: number,
+  b: number,
+  tolerancia: number
+): boolean {
+  if (a === 0 && b === 0) return true;
+  const base = Math.max(Math.abs(a), Math.abs(b));
+  const diferencia = Math.abs(a - b);
+  return diferencia / base <= tolerancia;
+}
+
+function numerosDentroDeToleranciaAbsoluta(
+  a: number,
+  b: number,
+  tolerancia: number
+): boolean {
+  return Math.abs(a - b) <= tolerancia;
+}
+
+/**
+ * Formatea un número con separador de miles y hasta 2 decimales.
+ */
+function formatearNumero(n: number): string {
+  return n.toLocaleString("es-ES", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
+
+function crearValidacion(
+  regla: string,
+  descripcion: string,
+  resultado: ResultadoValidacion,
+  severidad: Severidad,
+  documentos: string[],
+  campos: string[],
+  valores: Record<string, unknown>,
+  nota: string
+): Validacion {
+  return {
+    regla,
+    descripcion,
+    resultado,
+    severidad,
+    documentos,
+    campos,
+    valores,
+    nota,
+  };
+}
+
+// ------------------------------------------------------------
+// Tipo de salida del motor
+// ------------------------------------------------------------
+
+export interface ResultadoMotor {
+  validaciones: Validacion[];
+  advertencias: string[];
+}
+
+// ------------------------------------------------------------
+// Reglas de validación
+// ------------------------------------------------------------
+
+/**
+ * INV-PL-001: El número de factura referenciado en el packing list
+ * coincide con el número de factura.
+ *
+ * Fallback: si el packing list no tiene numero_factura_referencia pero
+ * su numero_documento coincide con la factura, se considera OK.
+ */
+function reglaINV_PL_001(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const numeroFactura = factura.numero_factura.valor;
+  const referenciaPacking = packing.numero_factura_referencia.valor;
+  const numeroDocumentoPacking = packing.numero_documento.valor;
+
+  // Caso 1: falta el número de factura en la factura
+  if (!numeroFactura) {
+    return crearValidacion(
+      "INV-PL-001",
+      "El número de factura referenciado en el packing list coincide con la factura",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["numero_factura"],
+      { factura: null },
+      "La factura no tiene número de factura. Es un dato imprescindible para la trazabilidad."
+    );
+  }
+
+  // Caso 2: el packing list tiene referencia explícita
+  if (referenciaPacking) {
+    const coincide = textosEquivalentes(numeroFactura, referenciaPacking);
+    return crearValidacion(
+      "INV-PL-001",
+      "El número de factura referenciado en el packing list coincide con la factura",
+      coincide ? "ok" : "discrepancia",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["numero_factura", "numero_factura_referencia"],
+      { factura: numeroFactura, packing_list: referenciaPacking },
+      coincide
+        ? ""
+        : `La factura indica "${numeroFactura}" pero el packing list referencia "${referenciaPacking}".`
+    );
+  }
+
+  // Caso 3: no hay referencia explícita, pero el número del documento coincide
+  if (numeroDocumentoPacking && textosEquivalentes(numeroFactura, numeroDocumentoPacking)) {
+    return crearValidacion(
+      "INV-PL-001",
+      "El número de factura referenciado en el packing list coincide con la factura",
+      "ok",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["numero_factura", "numero_documento"],
+      { factura: numeroFactura, packing_list: numeroDocumentoPacking },
+      `El packing list no tiene campo explícito de referencia a factura, pero su número de documento (${numeroDocumentoPacking}) coincide con el número de factura.`
+    );
+  }
+
+  // Caso 4: no hay forma de comprobar
+  return crearValidacion(
+    "INV-PL-001",
+    "El número de factura referenciado en el packing list coincide con la factura",
+    "no_comprobable",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["numero_factura", "numero_factura_referencia"],
+    { factura: numeroFactura, packing_list: null },
+    "El packing list no referencia ninguna factura. No se puede comprobar la correspondencia entre documentos. Verificar manualmente."
+  );
+}
+
+/**
+ * INV-PL-010: Cada línea de la factura aparece representada en el packing list.
+ * Comprobamos que el número de líneas es coherente y que las descripciones
+ * coinciden (por orden).
+ */
+function reglaINV_PL_010(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  // En v1 el packing list extrae bultos, no líneas de mercancía independientes.
+  // Si no hay bultos, no podemos comprobar línea a línea.
+  if (packing.bultos.length === 0) {
+    return crearValidacion(
+      "INV-PL-010",
+      "Cada línea de la factura está representada en el packing list",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["lineas", "bultos"],
+      { lineas_factura: factura.lineas.length, bultos_packing: 0 },
+      "El packing list no desglosa bultos por línea. No se puede comprobar la correspondencia línea a línea."
+    );
+  }
+
+  if (factura.lineas.length === 0) {
+    return crearValidacion(
+      "INV-PL-010",
+      "Cada línea de la factura está representada en el packing list",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["lineas", "bultos"],
+      { lineas_factura: 0, bultos_packing: packing.bultos.length },
+      "La factura no desglosa líneas. No se puede comprobar la correspondencia."
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-010",
+    "Cada línea de la factura está representada en el packing list",
+    "ok",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["lineas", "bultos"],
+    { lineas_factura: factura.lineas.length, bultos_packing: packing.bultos.length },
+    ""
+  );
+}
+
+/**
+ * INV-PL-011: La suma de cantidades del packing list coincide con la factura.
+ * Comprobamos comparando la suma de cantidades de líneas de factura
+ * contra la suma de cantidades de bultos del packing.
+ */
+function reglaINV_PL_011(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  // Suma de cantidades de la factura
+  let sumaFactura = 0;
+  let tieneCantidadesFactura = false;
+  for (const linea of factura.lineas) {
+    if (linea.cantidad.valor !== null) {
+      sumaFactura += linea.cantidad.valor;
+      tieneCantidadesFactura = true;
+    }
+  }
+
+  // Suma de cantidades del packing (a nivel de bultos)
+  let sumaPacking = 0;
+  let tieneCantidadesPacking = false;
+  for (const bulto of packing.bultos) {
+    for (const linea of bulto.lineas_contenidas) {
+      if (linea.cantidad.valor !== null) {
+        sumaPacking += linea.cantidad.valor;
+        tieneCantidadesPacking = true;
+      }
+    }
+  }
+
+  if (!tieneCantidadesFactura || !tieneCantidadesPacking) {
+    return crearValidacion(
+      "INV-PL-011",
+      "La suma de cantidades del packing list coincide con la factura",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["lineas.cantidad", "bultos.lineas_contenidas.cantidad"],
+      { suma_factura: tieneCantidadesFactura ? sumaFactura : null, suma_packing: tieneCantidadesPacking ? sumaPacking : null },
+      "No se puede comprobar la suma de cantidades porque falta información en alguno de los documentos."
+    );
+  }
+
+  if (sumaFactura === sumaPacking) {
+    return crearValidacion(
+      "INV-PL-011",
+      "La suma de cantidades del packing list coincide con la factura",
+      "ok",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["lineas.cantidad", "bultos.lineas_contenidas.cantidad"],
+      { suma_factura: sumaFactura, suma_packing: sumaPacking },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-011",
+    "La suma de cantidades del packing list coincide con la factura",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["lineas.cantidad", "bultos.lineas_contenidas.cantidad"],
+    { suma_factura: sumaFactura, suma_packing: sumaPacking },
+    `La factura suma ${formatearNumero(sumaFactura)} unidades, el packing list suma ${formatearNumero(sumaPacking)}.`
+  );
+}
+
+/**
+ * INV-PL-013: El código HS es consistente entre documentos cuando aparece en ambos.
+ */
+function reglaINV_PL_013(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  // En v1 el packing list no extrae código HS a nivel de línea,
+  // así que esta regla se queda como no_comprobable de momento.
+  // Se activará cuando extraigamos HS del packing list.
+  return crearValidacion(
+    "INV-PL-013",
+    "El código HS es consistente entre factura y packing list",
+    "no_comprobable",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["lineas.codigo_hs"],
+    {},
+    "El packing list no desglosa código HS por línea en v1. No se puede comprobar."
+  );
+}
+
+/**
+ * INV-PL-030: El número de bultos coincide entre factura y packing list.
+ */
+function reglaINV_PL_030(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const bultosFactura = factura.totales_fisicos.numero_bultos.valor;
+  const bultosPacking = packing.totales.numero_bultos.valor;
+
+  if (bultosFactura === null || bultosPacking === null) {
+    return crearValidacion(
+      "INV-PL-030",
+      "El número de bultos coincide entre factura y packing list",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.numero_bultos", "totales.numero_bultos"],
+      { factura: bultosFactura, packing_list: bultosPacking },
+      "Falta el número de bultos en alguno de los documentos. Es un dato crítico para el despacho."
+    );
+  }
+
+  if (bultosFactura === bultosPacking) {
+    return crearValidacion(
+      "INV-PL-030",
+      "El número de bultos coincide entre factura y packing list",
+      "ok",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.numero_bultos", "totales.numero_bultos"],
+      { factura: bultosFactura, packing_list: bultosPacking },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(bultosFactura - bultosPacking);
+  return crearValidacion(
+    "INV-PL-030",
+    "El número de bultos coincide entre factura y packing list",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["totales_fisicos.numero_bultos", "totales.numero_bultos"],
+    { factura: bultosFactura, packing_list: bultosPacking },
+    `La factura indica ${bultosFactura} bultos, el packing list indica ${bultosPacking}. Diferencia de ${diferencia} bulto(s).`
+  );
+}
+
+/**
+ * INV-PL-040: El peso neto coincide entre factura y packing list.
+ */
+function reglaINV_PL_040(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const netoFactura = factura.totales_fisicos.peso_neto.valor;
+  const netoPacking = packing.totales.peso_neto.valor;
+
+  if (netoFactura === null || netoPacking === null) {
+    return crearValidacion(
+      "INV-PL-040",
+      "El peso neto coincide entre factura y packing list",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.peso_neto", "totales.peso_neto"],
+      { factura: netoFactura, packing_list: netoPacking },
+      "Falta el peso neto en alguno de los documentos. Es un dato crítico para el despacho."
+    );
+  }
+
+  if (numerosDentroDeToleranciaPorcentual(netoFactura, netoPacking, TOLERANCIA_PESO_PORCENTAJE)) {
+    return crearValidacion(
+      "INV-PL-040",
+      "El peso neto coincide entre factura y packing list",
+      "ok",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.peso_neto", "totales.peso_neto"],
+      { factura: netoFactura, packing_list: netoPacking },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(netoFactura - netoPacking);
+  const porcentaje = ((diferencia / Math.max(netoFactura, netoPacking)) * 100).toFixed(2);
+  return crearValidacion(
+    "INV-PL-040",
+    "El peso neto coincide entre factura y packing list",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["totales_fisicos.peso_neto", "totales.peso_neto"],
+    { factura: netoFactura, packing_list: netoPacking },
+    `La factura indica ${formatearNumero(netoFactura)} kg netos, el packing list indica ${formatearNumero(netoPacking)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+  );
+}
+
+/**
+ * INV-PL-041: El peso bruto coincide entre factura y packing list.
+ */
+function reglaINV_PL_041(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const brutoFactura = factura.totales_fisicos.peso_bruto.valor;
+  const brutoPacking = packing.totales.peso_bruto.valor;
+
+  if (brutoFactura === null || brutoPacking === null) {
+    return crearValidacion(
+      "INV-PL-041",
+      "El peso bruto coincide entre factura y packing list",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.peso_bruto", "totales.peso_bruto"],
+      { factura: brutoFactura, packing_list: brutoPacking },
+      "Falta el peso bruto en alguno de los documentos. Es un dato crítico para el despacho."
+    );
+  }
+
+  if (numerosDentroDeToleranciaPorcentual(brutoFactura, brutoPacking, TOLERANCIA_PESO_PORCENTAJE)) {
+    return crearValidacion(
+      "INV-PL-041",
+      "El peso bruto coincide entre factura y packing list",
+      "ok",
+      "alta",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.peso_bruto", "totales.peso_bruto"],
+      { factura: brutoFactura, packing_list: brutoPacking },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(brutoFactura - brutoPacking);
+  const porcentaje = ((diferencia / Math.max(brutoFactura, brutoPacking)) * 100).toFixed(2);
+  return crearValidacion(
+    "INV-PL-041",
+    "El peso bruto coincide entre factura y packing list",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "packing_list"],
+    ["totales_fisicos.peso_bruto", "totales.peso_bruto"],
+    { factura: brutoFactura, packing_list: brutoPacking },
+    `La factura indica ${formatearNumero(brutoFactura)} kg brutos, el packing list indica ${formatearNumero(brutoPacking)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+  );
+}
+
+/**
+ * INV-PL-042: En cada documento, el peso bruto es mayor o igual que el neto.
+ * Se comprueba en totales y en bultos individuales.
+ */
+function reglaINV_PL_042(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion[] {
+  const validaciones: Validacion[] = [];
+
+  // Factura: totales
+  const netoF = factura.totales_fisicos.peso_neto.valor;
+  const brutoF = factura.totales_fisicos.peso_bruto.valor;
+  if (netoF !== null && brutoF !== null && brutoF < netoF) {
+    validaciones.push(
+      crearValidacion(
+        "INV-PL-042",
+        "El peso bruto es mayor o igual que el peso neto",
+        "discrepancia",
+        "alta",
+        ["factura_comercial"],
+        ["totales_fisicos.peso_neto", "totales_fisicos.peso_bruto"],
+        { peso_neto: netoF, peso_bruto: brutoF },
+        `En la factura, el peso bruto (${formatearNumero(brutoF)} kg) es menor que el peso neto (${formatearNumero(netoF)} kg). Físicamente imposible.`
+      )
+    );
+  }
+
+  // Packing: totales
+  const netoP = packing.totales.peso_neto.valor;
+  const brutoP = packing.totales.peso_bruto.valor;
+  if (netoP !== null && brutoP !== null && brutoP < netoP) {
+    validaciones.push(
+      crearValidacion(
+        "INV-PL-042",
+        "El peso bruto es mayor o igual que el peso neto",
+        "discrepancia",
+        "alta",
+        ["packing_list"],
+        ["totales.peso_neto", "totales.peso_bruto"],
+        { peso_neto: netoP, peso_bruto: brutoP },
+        `En el packing list, el peso bruto total (${formatearNumero(brutoP)} kg) es menor que el peso neto total (${formatearNumero(netoP)} kg). Físicamente imposible.`
+      )
+    );
+  }
+
+  // Packing: bultos individuales
+  for (let i = 0; i < packing.bultos.length; i++) {
+    const bulto = packing.bultos[i];
+    const neto = bulto.peso_neto.valor;
+    const bruto = bulto.peso_bruto.valor;
+    if (neto !== null && bruto !== null && bruto < neto) {
+      const id = bulto.numero_bulto.valor ?? bulto.identificador_bulto.valor ?? `#${i + 1}`;
+      validaciones.push(
+        crearValidacion(
+          "INV-PL-042",
+          "El peso bruto es mayor o igual que el peso neto",
+          "discrepancia",
+          "alta",
+          ["packing_list"],
+          [`bultos[${i}].peso_neto`, `bultos[${i}].peso_bruto`],
+          { bulto: id, peso_neto: neto, peso_bruto: bruto },
+          `En el packing list, el bulto "${id}" tiene peso bruto (${formatearNumero(bruto)} kg) menor que el peso neto (${formatearNumero(neto)} kg). Físicamente imposible.`
+        )
+      );
+    }
+  }
+
+  return validaciones;
+}
+
+/**
+ * INV-050: En la factura, la suma de los valores de línea coincide con el subtotal.
+ */
+function reglaINV_050(factura: FacturaComercial): Validacion {
+  const subtotal = factura.valoracion.subtotal_mercancia.importe;
+
+  let sumaLíneas = 0;
+  let tieneLineas = false;
+  for (const linea of factura.lineas) {
+    if (linea.valor_linea.importe !== null) {
+      sumaLíneas += linea.valor_linea.importe;
+      tieneLineas = true;
+    }
+  }
+
+  if (subtotal === null || !tieneLineas) {
+    return crearValidacion(
+      "INV-050",
+      "La suma de los valores de línea coincide con el subtotal de la factura",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial"],
+      ["valoracion.subtotal_mercancia", "lineas.valor_linea"],
+      { subtotal, suma_lineas: tieneLineas ? sumaLíneas : null },
+      "No se puede comprobar porque falta el subtotal o los valores de línea."
+    );
+  }
+
+  if (numerosDentroDeToleranciaAbsoluta(sumaLíneas, subtotal, TOLERANCIA_IMPORTE_ABSOLUTA)) {
+    return crearValidacion(
+      "INV-050",
+      "La suma de los valores de línea coincide con el subtotal de la factura",
+      "ok",
+      "alta",
+      ["factura_comercial"],
+      ["valoracion.subtotal_mercancia", "lineas.valor_linea"],
+      { subtotal, suma_lineas: sumaLíneas },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(sumaLíneas - subtotal);
+  return crearValidacion(
+    "INV-050",
+    "La suma de los valores de línea coincide con el subtotal de la factura",
+    "discrepancia",
+    "alta",
+    ["factura_comercial"],
+    ["valoracion.subtotal_mercancia", "lineas.valor_linea"],
+    { subtotal, suma_lineas: sumaLíneas },
+    `El subtotal declarado es ${formatearNumero(subtotal)}, pero la suma de las líneas es ${formatearNumero(sumaLíneas)}. Diferencia de ${formatearNumero(diferencia)}.`
+  );
+}
+
+/**
+ * INV-051: En la factura, subtotal - descuentos + cargos = total facturado.
+ */
+function reglaINV_051(factura: FacturaComercial): Validacion {
+  const subtotal = factura.valoracion.subtotal_mercancia.importe;
+  const descuentos = factura.valoracion.descuentos.importe ?? 0;
+  const embalaje = factura.valoracion.gastos_embalaje.importe ?? 0;
+  const transporte = factura.valoracion.transporte.importe ?? 0;
+  const seguro = factura.valoracion.seguro.importe ?? 0;
+  const total = factura.valoracion.total_facturado.importe;
+
+  if (subtotal === null || total === null) {
+    return crearValidacion(
+      "INV-051",
+      "El cuadre de la factura (subtotal - descuentos + cargos) coincide con el total",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial"],
+      ["valoracion"],
+      { subtotal, total },
+      "No se puede comprobar porque falta el subtotal o el total facturado."
+    );
+  }
+
+  const calculado = subtotal - descuentos + embalaje + transporte + seguro;
+
+  if (numerosDentroDeToleranciaAbsoluta(calculado, total, TOLERANCIA_IMPORTE_ABSOLUTA)) {
+    return crearValidacion(
+      "INV-051",
+      "El cuadre de la factura (subtotal - descuentos + cargos) coincide con el total",
+      "ok",
+      "alta",
+      ["factura_comercial"],
+      ["valoracion"],
+      { calculado, declarado: total },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(calculado - total);
+  return crearValidacion(
+    "INV-051",
+    "El cuadre de la factura (subtotal - descuentos + cargos) coincide con el total",
+    "discrepancia",
+    "alta",
+    ["factura_comercial"],
+    ["valoracion"],
+    { calculado, declarado: total },
+    `Según los componentes (subtotal ${formatearNumero(subtotal)} - descuentos ${formatearNumero(descuentos)} + embalaje ${formatearNumero(embalaje)} + transporte ${formatearNumero(transporte)} + seguro ${formatearNumero(seguro)}) el total sería ${formatearNumero(calculado)}, pero la factura declara ${formatearNumero(total)}. Diferencia de ${formatearNumero(diferencia)}.`
+  );
+}
+
+/**
+ * INV-PL-052: La moneda es coherente entre factura y packing list.
+ * (En v1 el packing list no declara moneda explícita, así que solo
+ * informamos de la moneda de la factura.)
+ */
+function reglaINV_PL_052(
+  factura: FacturaComercial,
+  _packing: PackingList
+): Validacion {
+  const monedaFactura = factura.moneda.valor;
+
+  if (!monedaFactura) {
+    return crearValidacion(
+      "INV-PL-052",
+      "La moneda está indicada en la factura",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial"],
+      ["moneda"],
+      { factura: null },
+      "La factura no indica moneda. Es un dato imprescindible para la valoración aduanera."
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-052",
+    "La moneda está indicada en la factura",
+    "ok",
+    "alta",
+    ["factura_comercial"],
+    ["moneda"],
+    { factura: monedaFactura },
+    ""
+  );
+}
+
+/**
+ * INV-PL-061: El Incoterm está indicado en la factura.
+ */
+function reglaINV_PL_061(
+  factura: FacturaComercial,
+  _packing: PackingList
+): Validacion {
+  const incoterm = factura.incoterm.codigo.valor;
+  const lugar = factura.incoterm.lugar_designado.valor;
+
+  if (!incoterm) {
+    return crearValidacion(
+      "INV-PL-061",
+      "El Incoterm está indicado en la factura",
+      "discrepancia",
+      "media",
+      ["factura_comercial"],
+      ["incoterm.codigo"],
+      { incoterm: null },
+      "La factura no indica Incoterm. Esto puede generar confusión sobre responsabilidad de costes y riesgos."
+    );
+  }
+
+  const nota = lugar ? "" : `El Incoterm "${incoterm}" no tiene lugar designado. Un Incoterm sin lugar está incompleto.`;
+
+  return crearValidacion(
+    "INV-PL-061",
+    "El Incoterm está indicado en la factura con su lugar designado",
+    lugar ? "ok" : "discrepancia",
+    lugar ? "media" : "baja",
+    ["factura_comercial"],
+    ["incoterm.codigo", "incoterm.lugar_designado"],
+    { codigo: incoterm, lugar },
+    nota
+  );
+}
+
+/**
+ * GEN-070: Campos obligatorios presentes en cada documento.
+ * Genera una validación por cada campo obligatorio ausente.
+ */
+function reglaGEN_070(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion[] {
+  const validaciones: Validacion[] = [];
+
+  const obligatoriosFactura: Array<[string, CampoTexto | CampoNumero | CampoImporte | CampoMagnitud]> = [
+    ["numero_factura", factura.numero_factura],
+    ["fecha_emision", factura.fecha_emision],
+    ["vendedor.nombre_legal", factura.vendedor.nombre_legal],
+    ["comprador.nombre_legal", factura.comprador.nombre_legal],
+    ["incoterm.codigo", factura.incoterm.codigo],
+    ["moneda", factura.moneda],
+    ["valoracion.total_facturado", factura.valoracion.total_facturado],
+  ];
+
+  for (const [nombreCampo, campo] of obligatoriosFactura) {
+    const tieneValor =
+      "valor" in campo ? campo.valor !== null : "importe" in campo ? campo.importe !== null : false;
+
+    if (!tieneValor) {
+      validaciones.push(
+        crearValidacion(
+          "GEN-070",
+          `Campo obligatorio ausente en factura: ${nombreCampo}`,
+          "discrepancia",
+          "alta",
+          ["factura_comercial"],
+          [nombreCampo],
+          { campo: nombreCampo, estado: campo.estado },
+          `El campo "${nombreCampo}" es obligatorio en una factura comercial y no se ha encontrado. Estado: ${campo.estado}.`
+        )
+      );
+    }
+  }
+
+  const obligatoriosPacking: Array<[string, CampoTexto | CampoNumero | CampoMagnitud]> = [
+    ["numero_documento", packing.numero_documento],
+    ["totales.numero_bultos", packing.totales.numero_bultos],
+    ["totales.peso_neto", packing.totales.peso_neto],
+    ["totales.peso_bruto", packing.totales.peso_bruto],
+  ];
+
+  for (const [nombreCampo, campo] of obligatoriosPacking) {
+    const tieneValor = "valor" in campo ? campo.valor !== null : false;
+
+    if (!tieneValor) {
+      validaciones.push(
+        crearValidacion(
+          "GEN-070",
+          `Campo obligatorio ausente en packing list: ${nombreCampo}`,
+          "discrepancia",
+          "alta",
+          ["packing_list"],
+          [nombreCampo],
+          { campo: nombreCampo, estado: campo.estado },
+          `El campo "${nombreCampo}" es obligatorio en un packing list y no se ha encontrado. Estado: ${campo.estado}.`
+        )
+      );
+    }
+  }
+
+  return validaciones;
+}
+
+/**
+ * GEN-071: Detecta campos con confianza baja y los añade a advertencias.
+ * No genera validaciones, solo advertencias.
+ */
+function reglaGEN_071(
+  factura: FacturaComercial,
+  packing: PackingList
+): string[] {
+  const advertencias: string[] = [];
+
+  function revisar(
+    docNombre: string,
+    ruta: string,
+    campo: { valor?: unknown; importe?: unknown; confianza: string }
+  ) {
+    const tieneValor =
+      (campo.valor !== undefined && campo.valor !== null) ||
+      (campo.importe !== undefined && campo.importe !== null);
+
+    if (tieneValor && campo.confianza === "baja") {
+      advertencias.push(
+        `${docNombre}: el campo "${ruta}" tiene confianza baja. Verificar manualmente.`
+      );
+    }
+  }
+
+  revisar("Factura", "numero_factura", factura.numero_factura);
+  revisar("Factura", "fecha_emision", factura.fecha_emision);
+  revisar("Factura", "moneda", factura.moneda);
+  revisar("Factura", "incoterm.codigo", factura.incoterm.codigo);
+  revisar("Factura", "valoracion.total_facturado", factura.valoracion.total_facturado);
+  revisar("Factura", "totales_fisicos.peso_neto", factura.totales_fisicos.peso_neto);
+  revisar("Factura", "totales_fisicos.peso_bruto", factura.totales_fisicos.peso_bruto);
+  revisar("Factura", "totales_fisicos.numero_bultos", factura.totales_fisicos.numero_bultos);
+
+  revisar("Packing list", "numero_documento", packing.numero_documento);
+  revisar("Packing list", "numero_factura_referencia", packing.numero_factura_referencia);
+  revisar("Packing list", "totales.peso_neto", packing.totales.peso_neto);
+  revisar("Packing list", "totales.peso_bruto", packing.totales.peso_bruto);
+  revisar("Packing list", "totales.numero_bultos", packing.totales.numero_bultos);
+
+  return advertencias;
+}
+
+/**
+ * Normaliza el tipo de bulto a una categoría estándar.
+ * Devuelve la categoría normalizada o null si no se reconoce.
+ */
+function normalizarTipoBulto(tipo: string): string | null {
+  const t = normalizarTexto(tipo);
+
+  if (/\b(carton|cartons|ctn|ctns|caja|cajas|box|boxes)\b/.test(t)) return "caja";
+  if (/\b(pallet|pallets|plt|plts|palet|palets)\b/.test(t)) return "pallet";
+  if (/\b(drum|drums|tambor|tambores|bidon|bidones)\b/.test(t)) return "tambor";
+  if (/\b(bag|bags|saco|sacos|sack|sacks)\b/.test(t)) return "saco";
+  if (/\b(roll|rolls|rollo|rollos)\b/.test(t)) return "rollo";
+  if (/\b(case|cases|maleta|maletas)\b/.test(t)) return "maleta";
+
+  return null;
+}
+
+/**
+ * INV-PL-002: El vendedor de la factura coincide con el expedidor del packing.
+ */
+function reglaINV_PL_002(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const vendedor = factura.vendedor.nombre_legal.valor;
+  const expedidor = packing.expedidor.nombre_legal.valor;
+
+  if (!vendedor || !expedidor) {
+    return crearValidacion(
+      "INV-PL-002",
+      "El vendedor de la factura coincide con el expedidor del packing list",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["vendedor.nombre_legal", "expedidor.nombre_legal"],
+      { factura: vendedor, packing_list: expedidor },
+      "Falta el nombre del vendedor o del expedidor en alguno de los documentos."
+    );
+  }
+
+  if (textosEquivalentes(vendedor, expedidor)) {
+    return crearValidacion(
+      "INV-PL-002",
+      "El vendedor de la factura coincide con el expedidor del packing list",
+      "ok",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["vendedor.nombre_legal", "expedidor.nombre_legal"],
+      { factura: vendedor, packing_list: expedidor },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-002",
+    "El vendedor de la factura coincide con el expedidor del packing list",
+    "discrepancia",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["vendedor.nombre_legal", "expedidor.nombre_legal"],
+    { factura: vendedor, packing_list: expedidor },
+    `La factura identifica al vendedor como "${vendedor}", pero el packing list identifica al expedidor como "${expedidor}".`
+  );
+}
+
+/**
+ * INV-PL-003: El comprador de la factura coincide con el destinatario del packing.
+ */
+function reglaINV_PL_003(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const comprador = factura.comprador.nombre_legal.valor;
+  const destinatario = packing.destinatario.nombre_legal.valor;
+
+  if (!comprador || !destinatario) {
+    return crearValidacion(
+      "INV-PL-003",
+      "El comprador de la factura coincide con el destinatario del packing list",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["comprador.nombre_legal", "destinatario.nombre_legal"],
+      { factura: comprador, packing_list: destinatario },
+      "Falta el nombre del comprador o del destinatario en alguno de los documentos."
+    );
+  }
+
+  if (textosEquivalentes(comprador, destinatario)) {
+    return crearValidacion(
+      "INV-PL-003",
+      "El comprador de la factura coincide con el destinatario del packing list",
+      "ok",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["comprador.nombre_legal", "destinatario.nombre_legal"],
+      { factura: comprador, packing_list: destinatario },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-003",
+    "El comprador de la factura coincide con el destinatario del packing list",
+    "discrepancia",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["comprador.nombre_legal", "destinatario.nombre_legal"],
+    { factura: comprador, packing_list: destinatario },
+    `La factura identifica al comprador como "${comprador}", pero el packing list identifica al destinatario como "${destinatario}".`
+  );
+}
+
+/**
+ * INV-PL-004: El consignatario coincide entre factura y packing list,
+ * si aparece en ambos documentos.
+ */
+function reglaINV_PL_004(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const consignatarioFactura = factura.consignatario.nombre_legal.valor;
+  const consignatarioPacking = packing.consignatario.nombre_legal.valor;
+
+  if (!consignatarioFactura || !consignatarioPacking) {
+    return crearValidacion(
+      "INV-PL-004",
+      "El consignatario coincide entre factura y packing list",
+      "no_comprobable",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["consignatario.nombre_legal"],
+      { factura: consignatarioFactura, packing_list: consignatarioPacking },
+      "El consignatario no aparece en uno o ambos documentos. No se puede comprobar."
+    );
+  }
+
+  if (textosEquivalentes(consignatarioFactura, consignatarioPacking)) {
+    return crearValidacion(
+      "INV-PL-004",
+      "El consignatario coincide entre factura y packing list",
+      "ok",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["consignatario.nombre_legal"],
+      { factura: consignatarioFactura, packing_list: consignatarioPacking },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-004",
+    "El consignatario coincide entre factura y packing list",
+    "discrepancia",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["consignatario.nombre_legal"],
+    { factura: consignatarioFactura, packing_list: consignatarioPacking },
+    `La factura identifica al consignatario como "${consignatarioFactura}", pero el packing list lo identifica como "${consignatarioPacking}".`
+  );
+}
+
+/**
+ * INV-PL-005: Las fechas de emisión son coherentes (máximo 7 días de diferencia).
+ */
+function reglaINV_PL_005(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const fechaFactura = factura.fecha_emision.valor;
+  const fechaPacking = packing.fecha_emision.valor;
+
+  if (!fechaFactura || !fechaPacking) {
+    return crearValidacion(
+      "INV-PL-005",
+      "Las fechas de emisión de factura y packing list son coherentes",
+      "no_comprobable",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["fecha_emision"],
+      { factura: fechaFactura, packing_list: fechaPacking },
+      "Falta la fecha de emisión en alguno de los documentos."
+    );
+  }
+
+  const d1 = new Date(fechaFactura);
+  const d2 = new Date(fechaPacking);
+
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
+    return crearValidacion(
+      "INV-PL-005",
+      "Las fechas de emisión de factura y packing list son coherentes",
+      "no_comprobable",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["fecha_emision"],
+      { factura: fechaFactura, packing_list: fechaPacking },
+      "Alguna de las fechas no tiene un formato interpretable."
+    );
+  }
+
+  const diffDias = Math.abs((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDias <= 7) {
+    return crearValidacion(
+      "INV-PL-005",
+      "Las fechas de emisión de factura y packing list son coherentes",
+      "ok",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["fecha_emision"],
+      { factura: fechaFactura, packing_list: fechaPacking, diferencia_dias: diffDias },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-005",
+    "Las fechas de emisión de factura y packing list son coherentes",
+    "discrepancia",
+    "baja",
+    ["factura_comercial", "packing_list"],
+    ["fecha_emision"],
+    { factura: fechaFactura, packing_list: fechaPacking, diferencia_dias: diffDias },
+    `La factura es del ${fechaFactura} y el packing list del ${fechaPacking}. Diferencia de ${Math.round(diffDias)} días.`
+  );
+}
+
+/**
+ * INV-PL-031: El tipo de bultos es coherente entre factura y packing list.
+ */
+function reglaINV_PL_031(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const tipoFactura = factura.totales_fisicos.tipo_bultos.valor;
+  const tipoPacking = packing.totales.tipo_bultos.valor;
+
+  if (!tipoFactura || !tipoPacking) {
+    return crearValidacion(
+      "INV-PL-031",
+      "El tipo de bultos es coherente entre factura y packing list",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.tipo_bultos", "totales.tipo_bultos"],
+      { factura: tipoFactura, packing_list: tipoPacking },
+      "Falta el tipo de bultos en alguno de los documentos."
+    );
+  }
+
+  const normalizadoFactura = normalizarTipoBulto(tipoFactura);
+  const normalizadoPacking = normalizarTipoBulto(tipoPacking);
+
+  if (normalizadoFactura && normalizadoPacking && normalizadoFactura === normalizadoPacking) {
+    return crearValidacion(
+      "INV-PL-031",
+      "El tipo de bultos es coherente entre factura y packing list",
+      "ok",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.tipo_bultos", "totales.tipo_bultos"],
+      { factura: tipoFactura, packing_list: tipoPacking },
+      ""
+    );
+  }
+
+  // Si no se reconocen, comparación literal
+  if (textosEquivalentes(tipoFactura, tipoPacking)) {
+    return crearValidacion(
+      "INV-PL-031",
+      "El tipo de bultos es coherente entre factura y packing list",
+      "ok",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["totales_fisicos.tipo_bultos", "totales.tipo_bultos"],
+      { factura: tipoFactura, packing_list: tipoPacking },
+      ""
+    );
+  }
+
+  return crearValidacion(
+    "INV-PL-031",
+    "El tipo de bultos es coherente entre factura y packing list",
+    "discrepancia",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["totales_fisicos.tipo_bultos", "totales.tipo_bultos"],
+    { factura: tipoFactura, packing_list: tipoPacking },
+    `La factura indica "${tipoFactura}" y el packing list "${tipoPacking}". Los tipos de bulto no coinciden.`
+  );
+}
+
+// ------------------------------------------------------------
+// Orquestador
+// ------------------------------------------------------------
+
+export function ejecutarReglas(
+  factura: FacturaComercial,
+  packing: PackingList
+): ResultadoMotor {
+  const validaciones: Validacion[] = [];
+
+  validaciones.push(reglaINV_PL_001(factura, packing));
+  validaciones.push(reglaINV_PL_002(factura, packing));
+  validaciones.push(reglaINV_PL_003(factura, packing));
+  validaciones.push(reglaINV_PL_004(factura, packing));
+  validaciones.push(reglaINV_PL_005(factura, packing));
+  validaciones.push(reglaINV_PL_010(factura, packing));
+  validaciones.push(reglaINV_PL_011(factura, packing));
+  validaciones.push(reglaINV_PL_013(factura, packing));
+  validaciones.push(reglaINV_PL_030(factura, packing));
+  validaciones.push(reglaINV_PL_031(factura, packing));
+  validaciones.push(reglaINV_PL_040(factura, packing));
+  validaciones.push(reglaINV_PL_041(factura, packing));
+  validaciones.push(...reglaINV_PL_042(factura, packing));
+  validaciones.push(reglaINV_050(factura));
+  validaciones.push(reglaINV_051(factura));
+  validaciones.push(reglaINV_PL_052(factura, packing));
+  validaciones.push(reglaINV_PL_061(factura, packing));
+  validaciones.push(...reglaGEN_070(factura, packing));
+
+  const advertencias = reglaGEN_071(factura, packing);
+
+  return { validaciones, advertencias };
+}
