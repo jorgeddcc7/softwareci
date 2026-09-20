@@ -122,6 +122,13 @@ function crearValidacion(
 export interface ResultadoMotor {
   validaciones: Validacion[];
   advertencias: string[];
+  descripciones_a_evaluar: Array<{
+    indice_linea: number;
+    descripcion: string;
+    pais_origen: string | null;
+    valor_linea: number | null;
+    moneda: string | null;
+  }>;
 }
 
 // ------------------------------------------------------------
@@ -1146,6 +1153,169 @@ function reglaINV_PL_031(
   );
 }
 
+/**
+ * Lista de palabras/frases que indican descripción genérica.
+ * Si la descripción contiene alguna de estas, se marca como sospechosa.
+ * No es una lista exhaustiva; se ampliará con feedback real.
+ */
+const PALABRAS_GENERICAS = [
+  "repuesto",
+  "repuestos",
+  "mercancia",
+  "mercancías",
+  "mercaderia",
+  "mercaderías",
+  "articulo",
+  "artículo",
+  "articulos",
+  "artículos",
+  "producto",
+  "productos",
+  "bienes",
+  "goods",
+  "parts",
+  "spare parts",
+  "samples",
+  "muestra",
+  "muestras",
+  "general cargo",
+  "general merchandise",
+  "electronics",
+  "electronicos",
+  "electrónicos",
+  "miscellaneous",
+  "varios",
+  "otros",
+  "assorted",
+  "various",
+];
+
+/**
+ * Normaliza una descripción para buscar palabras genéricas.
+ */
+function contienePalabraGenerica(descripcion: string): string | null {
+  const normalizada = normalizarTexto(descripcion);
+
+  for (const palabra of PALABRAS_GENERICAS) {
+    const palabraNormalizada = normalizarTexto(palabra);
+    // Buscar como palabra completa (con límites)
+    const regex = new RegExp(`\\b${palabraNormalizada}\\b`);
+    if (regex.test(normalizada)) {
+      return palabra;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * INV-020: La descripción de la mercancía no es demasiado genérica.
+ *
+ * Este paso es determinista (lista negra). Para las descripciones que
+ * superan la lista negra pero podrían ser genéricas, se devuelven en
+ * "descripciones_a_evaluar" para que se evalúen con IA después.
+ */
+function reglaINV_020(factura: FacturaComercial): {
+  validaciones: Validacion[];
+  descripciones_a_evaluar: Array<{
+    indice_linea: number;
+    descripcion: string;
+    pais_origen: string | null;
+    valor_linea: number | null;
+    moneda: string | null;
+  }>;
+} {
+  const validaciones: Validacion[] = [];
+  const descripciones_a_evaluar: Array<{
+    indice_linea: number;
+    descripcion: string;
+    pais_origen: string | null;
+    valor_linea: number | null;
+    moneda: string | null;
+  }> = [];
+
+  for (let i = 0; i < factura.lineas.length; i++) {
+    const linea = factura.lineas[i];
+    const descripcion = linea.descripcion_comercial.valor;
+
+    if (!descripcion || descripcion.trim() === "") {
+      continue;
+    }
+
+    const palabraGenerica = contienePalabraGenerica(descripcion);
+
+    if (palabraGenerica) {
+      // Alerta inmediata por lista negra
+      validaciones.push(
+        crearValidacion(
+          "INV-020",
+          "La descripción de la mercancía es suficientemente específica",
+          "discrepancia",
+          "media",
+          ["factura_comercial"],
+          [`lineas[${i}].descripcion_comercial`],
+          { descripcion, palabra_generica: palabraGenerica },
+          `La descripción "${descripcion}" contiene la palabra genérica "${palabraGenerica}". Las descripciones genéricas pueden generar sospecha o retención en aduana. Se recomienda detallar más: composición, uso, modelo, referencia.`
+        )
+      );
+    } else {
+      // No contiene palabras de la lista negra → pasa a evaluación con IA
+      descripciones_a_evaluar.push({
+        indice_linea: i,
+        descripcion,
+        pais_origen: linea.pais_origen.valor,
+        valor_linea: linea.valor_linea.importe,
+        moneda: linea.valor_linea.moneda,
+      });
+    }
+  }
+
+  return { validaciones, descripciones_a_evaluar };
+}
+
+/**
+ * INV-021: La descripción de la mercancía no es demasiado genérica
+ * (evaluación con IA para las que no detecta la lista negra).
+ *
+ * Esta función recibe los resultados de la evaluación con IA y genera
+ * las validaciones correspondientes.
+ */
+export function generarValidacionesINV_021(
+  resultados: Array<{
+    indice_linea: number;
+    descripcion: string;
+    es_especifica: boolean;
+    motivo: string;
+    sugerencia: string;
+    confianza: "alta" | "media" | "baja";
+  }>
+): Validacion[] {
+  const validaciones: Validacion[] = [];
+
+  for (const r of resultados) {
+    if (r.es_especifica) continue;
+
+    validaciones.push(
+      crearValidacion(
+        "INV-021",
+        "La descripción de la mercancía es suficientemente específica (evaluación IA)",
+        "discrepancia",
+        "media",
+        ["factura_comercial"],
+        [`lineas[${r.indice_linea}].descripcion_comercial`],
+        {
+          descripcion: r.descripcion,
+          motivo: r.motivo,
+          confianza_ia: r.confianza,
+        },
+        `La descripción "${r.descripcion}" parece genérica. Motivo: ${r.motivo}${r.sugerencia ? ` Sugerencia: ${r.sugerencia}` : ""}`
+      )
+    );
+  }
+
+  return validaciones;
+}
+
 // ------------------------------------------------------------
 // Orquestador
 // ------------------------------------------------------------
@@ -1155,8 +1325,14 @@ export function ejecutarReglas(
   packing: PackingList
 ): ResultadoMotor {
   const validaciones: Validacion[] = [];
+  const descripciones_a_evaluar: ResultadoMotor["descripciones_a_evaluar"] = [];
 
   validaciones.push(reglaINV_PL_001(factura, packing));
+
+  const inv020 = reglaINV_020(factura);
+  validaciones.push(...inv020.validaciones);
+  descripciones_a_evaluar.push(...inv020.descripciones_a_evaluar);
+
   validaciones.push(reglaINV_PL_002(factura, packing));
   validaciones.push(reglaINV_PL_003(factura, packing));
   validaciones.push(reglaINV_PL_004(factura, packing));
@@ -1177,5 +1353,5 @@ export function ejecutarReglas(
 
   const advertencias = reglaGEN_071(factura, packing);
 
-  return { validaciones, advertencias };
+  return { validaciones, advertencias, descripciones_a_evaluar };
 }

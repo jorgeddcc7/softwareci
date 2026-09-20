@@ -169,3 +169,73 @@ function detectarErrorRecuperable(error: unknown): boolean {
 
   return false;
 }
+
+// ============================================================
+// Evaluación de especificidad de descripciones (Nivel 2)
+// ============================================================
+
+/**
+ * Evalúa si una descripción comercial es suficientemente específica.
+ * Devuelve un objeto con el resultado.
+ *
+ * Solo se llama para descripciones que NO han sido detectadas
+ * por la lista negra determinista.
+ */
+export async function evaluarEspecificidad(
+  prompt: string
+): Promise<{
+  es_especifica: boolean;
+  motivo: string;
+  elementos_presentes: string[];
+  sugerencia: string;
+  confianza: "alta" | "media" | "baja";
+}> {
+  const cliente = crearCliente();
+
+  const MAX_INTENTOS = 3;
+  const ESPERA_BASE_MS = 5000;
+
+  let ultimoError: unknown = null;
+
+  for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
+    try {
+      const respuesta = await cliente.models.generateContent({
+        model: MODELO,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+      });
+
+      const texto = respuesta.text;
+      if (!texto) {
+        throw new Error("Gemini no devolvió texto en la respuesta.");
+      }
+
+      // Limpiar posible markdown
+      let limpio = texto.trim();
+      if (limpio.startsWith("```")) {
+        limpio = limpio.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+      }
+
+      return JSON.parse(limpio);
+    } catch (error: unknown) {
+      ultimoError = error;
+
+      const esRecuperable = detectarErrorRecuperable(error);
+      if (!esRecuperable) throw error;
+
+      if (intento < MAX_INTENTOS) {
+        const espera = ESPERA_BASE_MS * intento;
+        console.log(`  Gemini saturado. Reintentando en ${espera / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, espera));
+      }
+    }
+  }
+
+  throw new Error(
+    `Gemini no respondió tras ${MAX_INTENTOS} intentos. Último error: ${String(ultimoError)}`
+  );
+}

@@ -4,18 +4,23 @@
 //
 // Uso:
 //   npx tsx src/cli/probar-reglas.ts
+//   npx tsx src/cli/probar-reglas.ts <factura.json> <packing.json>
+//   npx tsx src/cli/probar-reglas.ts <factura.json> <packing.json> --sin-ia
 //
-// Este script lee dos JSON guardados en samples/json/ y ejecuta
-// el motor de reglas. No llama a ninguna API, es todo local.
+// Sin argumentos: usa los JSON por defecto en samples/json/.
+// Con --sin-ia: no llama a Gemini para el Nivel 2.
 // ============================================================
 
+import "dotenv/config";
 import * as fs from "fs";
 import * as path from "path";
 import { FacturaComercial, PackingList, Validacion } from "../types/documentos.js";
-import { ejecutarReglas } from "../rules/motor.js";
+import { ejecutarReglas, generarValidacionesINV_021 } from "../rules/motor.js";
+import { promptEspecificidad } from "../extraction/prompt-especificidad.js";
+import { evaluarEspecificidad } from "../extraction/gemini.js";
 
-const RUTA_FACTURA = path.resolve("samples/json/factura-test-01.json");
-const RUTA_PACKING = path.resolve("samples/json/packing-test-01.json");
+const RUTA_FACTURA_DEFECTO = path.resolve("samples/json/factura-test-01.json");
+const RUTA_PACKING_DEFECTO = path.resolve("samples/json/packing-test-01.json");
 
 function leerJson<T>(ruta: string): T {
   if (!fs.existsSync(ruta)) {
@@ -49,34 +54,102 @@ function imprimirValidacion(v: Validacion) {
   console.log("");
 }
 
-function main() {
+async function main() {
+  const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  const sinIA = process.argv.includes("--sin-ia");
+
+  const rutaFactura = args[0] ? path.resolve(args[0]) : RUTA_FACTURA_DEFECTO;
+  const rutaPacking = args[1] ? path.resolve(args[1]) : RUTA_PACKING_DEFECTO;
+
   console.log("============================================");
   console.log("  PRUEBA DEL MOTOR DE REGLAS");
   console.log("============================================");
+  console.log(`Factura: ${rutaFactura}`);
+  console.log(`Packing: ${rutaPacking}`);
+  if (sinIA) {
+    console.log("Modo --sin-ia: no se evalúa el Nivel 2 con IA.");
+  }
 
-  const factura = leerJson<FacturaComercial>(RUTA_FACTURA);
-  const packing = leerJson<PackingList>(RUTA_PACKING);
+  const factura = leerJson<FacturaComercial>(rutaFactura);
+  const packing = leerJson<PackingList>(rutaPacking);
 
-  console.log(`Factura: ${factura.numero_factura.valor}`);
-  console.log(`Packing: ${packing.numero_documento.valor}`);
+  console.log(`Nº factura: ${factura.numero_factura.valor}`);
+  console.log(`Nº packing: ${packing.numero_documento.valor}`);
   console.log("--------------------------------------------");
 
-  const { validaciones, advertencias } = ejecutarReglas(factura, packing);
+  // Ejecutar reglas deterministas
+  const { validaciones, advertencias, descripciones_a_evaluar } = ejecutarReglas(
+    factura,
+    packing
+  );
 
-  // Agrupar validaciones
-  const discrepanciasAltas = validaciones.filter(
+  // Nivel 2 con IA: evaluar las descripciones pendientes
+  const validacionesINV021: Validacion[] = [];
+
+  if (!sinIA && descripciones_a_evaluar.length > 0) {
+    console.log(
+      `Nivel 2: evaluando ${descripciones_a_evaluar.length} descripción(es) con IA...`
+    );
+    console.log("");
+
+    const resultados: Array<{
+      indice_linea: number;
+      descripcion: string;
+      es_especifica: boolean;
+      motivo: string;
+      sugerencia: string;
+      confianza: "alta" | "media" | "baja";
+    }> = [];
+
+    for (const item of descripciones_a_evaluar) {
+      try {
+        const prompt = promptEspecificidad(item.descripcion, {
+          pais_origen: item.pais_origen,
+          valor_linea: item.valor_linea,
+          moneda: item.moneda,
+        });
+
+        const resultado = await evaluarEspecificidad(prompt);
+        resultados.push({
+          indice_linea: item.indice_linea,
+          descripcion: item.descripcion,
+          ...resultado,
+        });
+
+        console.log(
+          `  Línea ${item.indice_linea}: "${item.descripcion}" → ${
+            resultado.es_especifica ? "✅ específica" : "❌ genérica"
+          } (confianza: ${resultado.confianza})`
+        );
+      } catch (error) {
+        console.error(
+          `  Error evaluando línea ${item.indice_linea}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+    }
+
+    console.log("");
+
+    const inv021 = generarValidacionesINV_021(resultados);
+    validacionesINV021.push(...inv021);
+  }
+
+  // Combinar todas las validaciones
+  const todas = [...validaciones, ...validacionesINV021];
+
+  const discrepanciasAltas = todas.filter(
     (v) => v.resultado === "discrepancia" && v.severidad === "alta"
   );
-  const discrepanciasMedias = validaciones.filter(
+  const discrepanciasMedias = todas.filter(
     (v) => v.resultado === "discrepancia" && v.severidad === "media"
   );
-  const discrepanciasBajas = validaciones.filter(
+  const discrepanciasBajas = todas.filter(
     (v) => v.resultado === "discrepancia" && v.severidad === "baja"
   );
-  const noComprobables = validaciones.filter((v) => v.resultado === "no_comprobable");
-  const oks = validaciones.filter((v) => v.resultado === "ok");
+  const noComprobables = todas.filter((v) => v.resultado === "no_comprobable");
+  const oks = todas.filter((v) => v.resultado === "ok");
 
-  // Mostrar discrepancias altas primero
   if (discrepanciasAltas.length > 0) {
     console.log("🔴 DISCREPANCIAS DE SEVERIDAD ALTA");
     console.log("--------------------------------------------");
@@ -120,7 +193,7 @@ function main() {
   console.log("============================================");
   console.log("  RESUMEN");
   console.log("============================================");
-  console.log(`  Total reglas ejecutadas:  ${validaciones.length}`);
+  console.log(`  Total reglas ejecutadas:  ${todas.length}`);
   console.log(`  Discrepancias altas:      ${discrepanciasAltas.length}`);
   console.log(`  Discrepancias medias:     ${discrepanciasMedias.length}`);
   console.log(`  Discrepancias bajas:      ${discrepanciasBajas.length}`);
@@ -128,18 +201,9 @@ function main() {
   console.log(`  Correctas:                ${oks.length}`);
   console.log(`  Advertencias:             ${advertencias.length}`);
   console.log("============================================");
-
-  // Resultado global
-  let resultadoGlobal: "apto" | "revisar" | "no_apto";
-  if (discrepanciasAltas.length > 0) {
-    resultadoGlobal = "no_apto";
-  } else if (discrepanciasMedias.length > 0 || noComprobables.length > 0) {
-    resultadoGlobal = "revisar";
-  } else {
-    resultadoGlobal = "apto";
-  }
-  console.log(`  RESULTADO GLOBAL: ${resultadoGlobal.toUpperCase()}`);
-  console.log("============================================");
 }
 
-main();
+main().catch((err) => {
+  console.error("Error inesperado:", err);
+  process.exit(1);
+});
