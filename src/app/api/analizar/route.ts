@@ -20,7 +20,7 @@ import { ejecutarReglas } from "@/rules/motor";
 
 // Las API routes de Next.js usan el runtime de Node.js por defecto.
 // Necesitamos tiempo suficiente para que Gemini responda.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Limpia un texto que puede venir envuelto en bloques markdown.
