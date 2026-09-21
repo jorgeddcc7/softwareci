@@ -231,13 +231,88 @@ export interface PackingList {
 }
 
 // ------------------------------------------------------------
+// Documento de transporte: Bill of Lading (B/L) marítimo
+// ------------------------------------------------------------
+//
+// En v1 solo soportamos B/L marítimo. En v2 ampliaremos a AWB,
+// CMR y otros tipos de documento de transporte.
+// ------------------------------------------------------------
+
+/**
+ * Contenedor individual dentro de un B/L.
+ */
+export interface Contenedor {
+  numero_contenedor: CampoTexto;
+  tipo_tamano: CampoTexto;
+  numero_precinto: CampoTexto;
+  numero_bultos: CampoNumero;
+  peso_bruto: CampoMagnitud;
+  vgm: CampoMagnitud;
+}
+
+/**
+ * Carga declarada en el B/L.
+ */
+export interface CargaBL {
+  descripcion: CampoTexto;
+  numero_bultos: CampoNumero;
+  tipo_bultos: CampoTexto;
+  peso_bruto: CampoMagnitud;
+  peso_neto: CampoMagnitud;
+  volumen: CampoMagnitud;
+}
+
+/**
+ * Estructura completa de un Bill of Lading marítimo.
+ */
+export interface DocumentoTransporte {
+  tipo_documento: "bill_of_lading";
+
+  // Identificación
+  numero_documento: CampoTexto;
+  tipo_bl: CampoTexto;
+  fecha_emision: CampoTexto;
+  fecha_carga: CampoTexto;
+
+  // Partes
+  transportista: Parte;
+  expedidor: Parte;
+  consignatario: Parte;
+  notify_party: Parte;
+
+  // Lugares logísticos
+  puerto_carga: CampoTexto;
+  puerto_descarga: CampoTexto;
+  lugar_entrega: CampoTexto;
+
+  // Medio de transporte
+  nombre_buque: CampoTexto;
+  numero_viaje: CampoTexto;
+
+  // Referencias
+  numero_factura_referencia: CampoTexto;
+  numero_pedido_referencia: CampoTexto;
+  numero_reserva: CampoTexto;
+
+  // Carga
+  carga: CargaBL;
+  contenedores: Contenedor[];
+
+  // Flete
+  flete_pagado_en: CampoTexto;
+}
+
+// ------------------------------------------------------------
 // Tipo unión
 // ------------------------------------------------------------
 
 /**
  * Cualquier documento que el sistema puede extraer en v1.
  */
-export type Documento = FacturaComercial | PackingList;
+export type Documento =
+  | FacturaComercial
+  | PackingList
+  | DocumentoTransporte;
 
 // ------------------------------------------------------------
 // Validaciones (capa separada de la extracción)

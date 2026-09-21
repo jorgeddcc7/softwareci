@@ -14,7 +14,7 @@
 import "dotenv/config";
 import * as fs from "fs";
 import * as path from "path";
-import { FacturaComercial, PackingList, Validacion } from "../types/documentos.js";
+import { FacturaComercial, PackingList, DocumentoTransporte, Validacion } from "../types/documentos.js";
 import { ejecutarReglas, generarValidacionesINV_021 } from "../rules/motor.js";
 import { promptEspecificidad } from "../extraction/prompt-especificidad.js";
 import { evaluarEspecificidad } from "../extraction/gemini.js";
@@ -60,6 +60,7 @@ async function main() {
 
   const rutaFactura = args[0] ? path.resolve(args[0]) : RUTA_FACTURA_DEFECTO;
   const rutaPacking = args[1] ? path.resolve(args[1]) : RUTA_PACKING_DEFECTO;
+  const rutaTransporte = args[2] ? path.resolve(args[2]) : null;
 
   console.log("============================================");
   console.log("  PRUEBA DEL MOTOR DE REGLAS");
@@ -72,6 +73,9 @@ async function main() {
 
   const factura = leerJson<FacturaComercial>(rutaFactura);
   const packing = leerJson<PackingList>(rutaPacking);
+  const transporte: DocumentoTransporte | null = rutaTransporte
+    ? leerJson<DocumentoTransporte>(rutaTransporte)
+    : null;
 
   console.log(`Nº factura: ${factura.numero_factura.valor}`);
   console.log(`Nº packing: ${packing.numero_documento.valor}`);
@@ -80,7 +84,8 @@ async function main() {
   // Ejecutar reglas deterministas
   const { validaciones, advertencias, descripciones_a_evaluar } = ejecutarReglas(
     factura,
-    packing
+    packing,
+    transporte
   );
 
   // Nivel 2 con IA: evaluar las descripciones pendientes

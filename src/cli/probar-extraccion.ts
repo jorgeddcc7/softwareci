@@ -16,6 +16,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { subirPdf, analizarPdf } from "../extraction/gemini.js";
 import { promptFactura, promptPackingList } from "../extraction/prompt.js";
+import { promptTransporte } from "../extraction/prompt-transporte.js";
 
 async function main() {
   // ---------------------------------------------
@@ -37,8 +38,14 @@ async function main() {
     process.exit(1);
   }
 
-  if (tipoDoc !== "factura" && tipoDoc !== "packing") {
-    console.error('El tipo de documento debe ser "factura" o "packing".');
+  if (
+    tipoDoc !== "factura" &&
+    tipoDoc !== "packing" &&
+    tipoDoc !== "transporte"
+  ) {
+    console.error(
+      'El tipo de documento debe ser "factura", "packing" o "transporte".'
+    );
     process.exit(1);
   }
 
@@ -52,8 +59,15 @@ async function main() {
   // ---------------------------------------------
   // 2. Elegir el prompt adecuado
   // ---------------------------------------------
-  const prompt = tipoDoc === "factura" ? promptFactura() : promptPackingList();
-
+  let prompt: string;
+  if (tipoDoc === "factura") {
+    prompt = promptFactura();
+  } else if (tipoDoc === "packing") {
+    prompt = promptPackingList();
+  } else {
+    prompt = promptTransporte();
+  }
+  
   // ---------------------------------------------
   // 3. Subir el PDF a Gemini
   // ---------------------------------------------

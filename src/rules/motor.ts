@@ -17,7 +17,7 @@ import {
   CampoMagnitud,
   FacturaComercial,
   PackingList,
-  LineaFactura,
+  DocumentoTransporte,
   Validacion,
   Severidad,
   ResultadoValidacion,
@@ -1317,16 +1317,409 @@ export function generarValidacionesINV_021(
 }
 
 // ------------------------------------------------------------
+// Reglas que involucran el documento de transporte (B/L)
+// ------------------------------------------------------------
+//
+// Solo se ejecutan si el usuario ha subido un B/L.
+// Comparan factura ↔ B/L y packing ↔ B/L.
+// ------------------------------------------------------------
+
+/**
+ * INV-BL-001: El número de factura referenciado en el B/L coincide con la factura.
+ */
+function reglaINV_BL_001(
+  factura: FacturaComercial,
+  transporte: DocumentoTransporte
+): Validacion {
+  const numeroFactura = factura.numero_factura.valor;
+  const referenciaBL = transporte.numero_factura_referencia.valor;
+
+  if (!numeroFactura || !referenciaBL) {
+    return crearValidacion(
+      "INV-BL-001",
+      "El número de factura referenciado en el B/L coincide con la factura",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "documento_transporte"],
+      ["numero_factura", "numero_factura_referencia"],
+      { factura: numeroFactura, bl: referenciaBL },
+      "No se puede comprobar porque falta el número de factura en alguno de los documentos."
+    );
+  }
+
+  const coincide = textosEquivalentes(numeroFactura, referenciaBL);
+
+  return crearValidacion(
+    "INV-BL-001",
+    "El número de factura referenciado en el B/L coincide con la factura",
+    coincide ? "ok" : "discrepancia",
+    "alta",
+    ["factura_comercial", "documento_transporte"],
+    ["numero_factura", "numero_factura_referencia"],
+    { factura: numeroFactura, bl: referenciaBL },
+    coincide
+      ? ""
+      : `La factura indica "${numeroFactura}" pero el B/L referencia "${referenciaBL}".`
+  );
+}
+
+/**
+ * INV-BL-002: El expedidor del B/L coincide con el vendedor de la factura.
+ */
+function reglaINV_BL_002(
+  factura: FacturaComercial,
+  transporte: DocumentoTransporte
+): Validacion {
+  const vendedor = factura.vendedor.nombre_legal.valor;
+  const expedidor = transporte.expedidor.nombre_legal.valor;
+
+  if (!vendedor || !expedidor) {
+    return crearValidacion(
+      "INV-BL-002",
+      "El expedidor del B/L coincide con el vendedor de la factura",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "documento_transporte"],
+      ["vendedor.nombre_legal", "expedidor.nombre_legal"],
+      { factura: vendedor, bl: expedidor },
+      "Falta el nombre del vendedor o del expedidor en alguno de los documentos."
+    );
+  }
+
+  const coincide = textosEquivalentes(vendedor, expedidor);
+
+  return crearValidacion(
+    "INV-BL-002",
+    "El expedidor del B/L coincide con el vendedor de la factura",
+    coincide ? "ok" : "discrepancia",
+    "media",
+    ["factura_comercial", "documento_transporte"],
+    ["vendedor.nombre_legal", "expedidor.nombre_legal"],
+    { factura: vendedor, bl: expedidor },
+    coincide
+      ? ""
+      : `La factura identifica al vendedor como "${vendedor}", el B/L identifica al expedidor como "${expedidor}".`
+  );
+}
+
+/**
+ * INV-BL-003: El consignatario del B/L coincide con el consignatario de la factura.
+ */
+function reglaINV_BL_003(
+  factura: FacturaComercial,
+  transporte: DocumentoTransporte
+): Validacion {
+  const consignatarioFactura = factura.consignatario.nombre_legal.valor;
+  const consignatarioBL = transporte.consignatario.nombre_legal.valor;
+
+  if (!consignatarioFactura || !consignatarioBL) {
+    return crearValidacion(
+      "INV-BL-003",
+      "El consignatario del B/L coincide con el consignatario de la factura",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "documento_transporte"],
+      ["consignatario.nombre_legal"],
+      { factura: consignatarioFactura, bl: consignatarioBL },
+      "Falta el consignatario en alguno de los documentos."
+    );
+  }
+
+  const coincide = textosEquivalentes(consignatarioFactura, consignatarioBL);
+
+  return crearValidacion(
+    "INV-BL-003",
+    "El consignatario del B/L coincide con el consignatario de la factura",
+    coincide ? "ok" : "discrepancia",
+    "media",
+    ["factura_comercial", "documento_transporte"],
+    ["consignatario.nombre_legal"],
+    { factura: consignatarioFactura, bl: consignatarioBL },
+    coincide
+      ? ""
+      : `La factura identifica al consignatario como "${consignatarioFactura}", el B/L como "${consignatarioBL}".`
+  );
+}
+
+/**
+ * INV-BL-010: El número de bultos coincide entre factura y B/L.
+ */
+function reglaINV_BL_010(
+  factura: FacturaComercial,
+  transporte: DocumentoTransporte
+): Validacion {
+  const bultosFactura = factura.totales_fisicos.numero_bultos.valor;
+  const bultosBL = transporte.carga.numero_bultos.valor;
+
+  if (bultosFactura === null || bultosBL === null) {
+    return crearValidacion(
+      "INV-BL-010",
+      "El número de bultos coincide entre factura y B/L",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "documento_transporte"],
+      ["totales_fisicos.numero_bultos", "carga.numero_bultos"],
+      { factura: bultosFactura, bl: bultosBL },
+      "Falta el número de bultos en alguno de los documentos."
+    );
+  }
+
+  if (bultosFactura === bultosBL) {
+    return crearValidacion(
+      "INV-BL-010",
+      "El número de bultos coincide entre factura y B/L",
+      "ok",
+      "alta",
+      ["factura_comercial", "documento_transporte"],
+      ["totales_fisicos.numero_bultos", "carga.numero_bultos"],
+      { factura: bultosFactura, bl: bultosBL },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(bultosFactura - bultosBL);
+  return crearValidacion(
+    "INV-BL-010",
+    "El número de bultos coincide entre factura y B/L",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "documento_transporte"],
+    ["totales_fisicos.numero_bultos", "carga.numero_bultos"],
+    { factura: bultosFactura, bl: bultosBL },
+    `La factura indica ${bultosFactura} bultos, el B/L indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
+  );
+}
+
+/**
+ * INV-BL-011: El peso bruto coincide entre factura y B/L.
+ */
+function reglaINV_BL_011(
+  factura: FacturaComercial,
+  transporte: DocumentoTransporte
+): Validacion {
+  const brutoFactura = factura.totales_fisicos.peso_bruto.valor;
+  const brutoBL = transporte.carga.peso_bruto.valor;
+
+  if (brutoFactura === null || brutoBL === null) {
+    return crearValidacion(
+      "INV-BL-011",
+      "El peso bruto coincide entre factura y B/L",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial", "documento_transporte"],
+      ["totales_fisicos.peso_bruto", "carga.peso_bruto"],
+      { factura: brutoFactura, bl: brutoBL },
+      "Falta el peso bruto en alguno de los documentos."
+    );
+  }
+
+  if (numerosDentroDeToleranciaPorcentual(brutoFactura, brutoBL, TOLERANCIA_PESO_PORCENTAJE)) {
+    return crearValidacion(
+      "INV-BL-011",
+      "El peso bruto coincide entre factura y B/L",
+      "ok",
+      "alta",
+      ["factura_comercial", "documento_transporte"],
+      ["totales_fisicos.peso_bruto", "carga.peso_bruto"],
+      { factura: brutoFactura, bl: brutoBL },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(brutoFactura - brutoBL);
+  const porcentaje = ((diferencia / Math.max(brutoFactura, brutoBL)) * 100).toFixed(2);
+  return crearValidacion(
+    "INV-BL-011",
+    "El peso bruto coincide entre factura y B/L",
+    "discrepancia",
+    "alta",
+    ["factura_comercial", "documento_transporte"],
+    ["totales_fisicos.peso_bruto", "carga.peso_bruto"],
+    { factura: brutoFactura, bl: brutoBL },
+    `La factura indica ${formatearNumero(brutoFactura)} kg brutos, el B/L indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+  );
+}
+
+/**
+ * INV-BL-012: El Incoterm del B/L coincide con el de la factura.
+ */
+function reglaINV_BL_012(
+  factura: FacturaComercial,
+  _transporte: DocumentoTransporte
+): Validacion {
+  // En v1 el B/L extrae el Incoterm dentro de "flete_pagado_en" o en remarks,
+  // pero no tenemos un campo explícito. Esta regla se queda como no_comprobable
+  // hasta que ampliemos el schema del B/L con Incoterm explícito.
+  const incotermFactura = factura.incoterm.codigo.valor;
+
+  return crearValidacion(
+    "INV-BL-012",
+    "El Incoterm del B/L coincide con el de la factura",
+    "no_comprobable",
+    "media",
+    ["factura_comercial", "documento_transporte"],
+    ["incoterm.codigo"],
+    { factura: incotermFactura },
+    "El B/L en v1 no extrae Incoterm en campo explícito. Se puede comparar cuando ampliemos el schema."
+  );
+}
+
+/**
+ * PL-BL-001: El número de bultos coincide entre packing list y B/L.
+ */
+function reglaPL_BL_001(
+  packing: PackingList,
+  transporte: DocumentoTransporte
+): Validacion {
+  const bultosPacking = packing.totales.numero_bultos.valor;
+  const bultosBL = transporte.carga.numero_bultos.valor;
+
+  if (bultosPacking === null || bultosBL === null) {
+    return crearValidacion(
+      "PL-BL-001",
+      "El número de bultos coincide entre packing list y B/L",
+      "no_comprobable",
+      "alta",
+      ["packing_list", "documento_transporte"],
+      ["totales.numero_bultos", "carga.numero_bultos"],
+      { packing: bultosPacking, bl: bultosBL },
+      "Falta el número de bultos en alguno de los documentos."
+    );
+  }
+
+  if (bultosPacking === bultosBL) {
+    return crearValidacion(
+      "PL-BL-001",
+      "El número de bultos coincide entre packing list y B/L",
+      "ok",
+      "alta",
+      ["packing_list", "documento_transporte"],
+      ["totales.numero_bultos", "carga.numero_bultos"],
+      { packing: bultosPacking, bl: bultosBL },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(bultosPacking - bultosBL);
+  return crearValidacion(
+    "PL-BL-001",
+    "El número de bultos coincide entre packing list y B/L",
+    "discrepancia",
+    "alta",
+    ["packing_list", "documento_transporte"],
+    ["totales.numero_bultos", "carga.numero_bultos"],
+    { packing: bultosPacking, bl: bultosBL },
+    `El packing list indica ${bultosPacking} bultos, el B/L indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
+  );
+}
+
+/**
+ * PL-BL-002: El peso bruto coincide entre packing list y B/L.
+ */
+function reglaPL_BL_002(
+  packing: PackingList,
+  transporte: DocumentoTransporte
+): Validacion {
+  const brutoPacking = packing.totales.peso_bruto.valor;
+  const brutoBL = transporte.carga.peso_bruto.valor;
+
+  if (brutoPacking === null || brutoBL === null) {
+    return crearValidacion(
+      "PL-BL-002",
+      "El peso bruto coincide entre packing list y B/L",
+      "no_comprobable",
+      "alta",
+      ["packing_list", "documento_transporte"],
+      ["totales.peso_bruto", "carga.peso_bruto"],
+      { packing: brutoPacking, bl: brutoBL },
+      "Falta el peso bruto en alguno de los documentos."
+    );
+  }
+
+  if (numerosDentroDeToleranciaPorcentual(brutoPacking, brutoBL, TOLERANCIA_PESO_PORCENTAJE)) {
+    return crearValidacion(
+      "PL-BL-002",
+      "El peso bruto coincide entre packing list y B/L",
+      "ok",
+      "alta",
+      ["packing_list", "documento_transporte"],
+      ["totales.peso_bruto", "carga.peso_bruto"],
+      { packing: brutoPacking, bl: brutoBL },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(brutoPacking - brutoBL);
+  const porcentaje = ((diferencia / Math.max(brutoPacking, brutoBL)) * 100).toFixed(2);
+  return crearValidacion(
+    "PL-BL-002",
+    "El peso bruto coincide entre packing list y B/L",
+    "discrepancia",
+    "alta",
+    ["packing_list", "documento_transporte"],
+    ["totales.peso_bruto", "carga.peso_bruto"],
+    { packing: brutoPacking, bl: brutoBL },
+    `El packing list indica ${formatearNumero(brutoPacking)} kg brutos, el B/L indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+  );
+}
+
+/**
+ * PL-BL-003: El tipo de bultos coincide entre packing list y B/L.
+ */
+function reglaPL_BL_003(
+  packing: PackingList,
+  transporte: DocumentoTransporte
+): Validacion {
+  const tipoPacking = packing.totales.tipo_bultos.valor;
+  const tipoBL = transporte.carga.tipo_bultos.valor;
+
+  if (!tipoPacking || !tipoBL) {
+    return crearValidacion(
+      "PL-BL-003",
+      "El tipo de bultos coincide entre packing list y B/L",
+      "no_comprobable",
+      "media",
+      ["packing_list", "documento_transporte"],
+      ["totales.tipo_bultos", "carga.tipo_bultos"],
+      { packing: tipoPacking, bl: tipoBL },
+      "Falta el tipo de bultos en alguno de los documentos."
+    );
+  }
+
+  const normalizadoPacking = normalizarTipoBulto(tipoPacking);
+  const normalizadoBL = normalizarTipoBulto(tipoBL);
+
+  const coincide =
+    (normalizadoPacking && normalizadoBL && normalizadoPacking === normalizadoBL) ||
+    textosEquivalentes(tipoPacking, tipoBL);
+
+  return crearValidacion(
+    "PL-BL-003",
+    "El tipo de bultos coincide entre packing list y B/L",
+    coincide ? "ok" : "discrepancia",
+    "media",
+    ["packing_list", "documento_transporte"],
+    ["totales.tipo_bultos", "carga.tipo_bultos"],
+    { packing: tipoPacking, bl: tipoBL },
+    coincide
+      ? ""
+      : `El packing list indica "${tipoPacking}", el B/L indica "${tipoBL}".`
+  );
+}
+
+// ------------------------------------------------------------
 // Orquestador
 // ------------------------------------------------------------
 
 export function ejecutarReglas(
   factura: FacturaComercial,
-  packing: PackingList
+  packing: PackingList,
+  transporte?: DocumentoTransporte | null
 ): ResultadoMotor {
   const validaciones: Validacion[] = [];
   const descripciones_a_evaluar: ResultadoMotor["descripciones_a_evaluar"] = [];
 
+  // Reglas factura ↔ packing
   validaciones.push(reglaINV_PL_001(factura, packing));
 
   const inv020 = reglaINV_020(factura);
@@ -1350,6 +1743,19 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_PL_052(factura, packing));
   validaciones.push(reglaINV_PL_061(factura, packing));
   validaciones.push(...reglaGEN_070(factura, packing));
+
+  // Reglas con documento de transporte (solo si existe)
+  if (transporte) {
+    validaciones.push(reglaINV_BL_001(factura, transporte));
+    validaciones.push(reglaINV_BL_002(factura, transporte));
+    validaciones.push(reglaINV_BL_003(factura, transporte));
+    validaciones.push(reglaINV_BL_010(factura, transporte));
+    validaciones.push(reglaINV_BL_011(factura, transporte));
+    validaciones.push(reglaINV_BL_012(factura, transporte));
+    validaciones.push(reglaPL_BL_001(packing, transporte));
+    validaciones.push(reglaPL_BL_002(packing, transporte));
+    validaciones.push(reglaPL_BL_003(packing, transporte));
+  }
 
   const advertencias = reglaGEN_071(factura, packing);
 
