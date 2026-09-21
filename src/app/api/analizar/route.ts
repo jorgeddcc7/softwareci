@@ -70,23 +70,34 @@ export async function POST(request: NextRequest) {
       rutaTransporte = await guardarTemporal("transporte.pdf", transporteBuffer);
     }
 
-    // Extraer factura
-    const uriFactura = await subirPdf(rutaFactura);
-    const respFactura = await analizarPdf(uriFactura, promptFactura());
-    const factura = JSON.parse(limpiarJson(respFactura)) as FacturaComercial;
+    // Extraer los tres documentos EN PARALELO para reducir el tiempo total
+    console.log("Extrayendo documentos en paralelo...");
 
-    // Extraer packing
-    const uriPacking = await subirPdf(rutaPacking);
-    const respPacking = await analizarPdf(uriPacking, promptPackingList());
-    const packing = JSON.parse(limpiarJson(respPacking)) as PackingList;
+    const extraerFacturaPromise = (async () => {
+      const uri = await subirPdf(rutaFactura);
+      const resp = await analizarPdf(uri, promptFactura());
+      return JSON.parse(limpiarJson(resp)) as FacturaComercial;
+    })();
 
-    // Extraer transporte (si existe)
-    let transporte: DocumentoTransporte | null = null;
-    if (rutaTransporte) {
-      const uriTransporte = await subirPdf(rutaTransporte);
-      const respTransporte = await analizarPdf(uriTransporte, promptTransporte());
-      transporte = JSON.parse(limpiarJson(respTransporte)) as DocumentoTransporte;
-    }
+    const extraerPackingPromise = (async () => {
+      const uri = await subirPdf(rutaPacking);
+      const resp = await analizarPdf(uri, promptPackingList());
+      return JSON.parse(limpiarJson(resp)) as PackingList;
+    })();
+
+    const extraerTransportePromise = rutaTransporte
+      ? (async () => {
+          const uri = await subirPdf(rutaTransporte);
+          const resp = await analizarPdf(uri, promptTransporte());
+          return JSON.parse(limpiarJson(resp)) as DocumentoTransporte;
+        })()
+      : Promise.resolve(null);
+
+    const [factura, packing, transporte] = await Promise.all([
+      extraerFacturaPromise,
+      extraerPackingPromise,
+      extraerTransportePromise,
+    ]);
 
     // Ejecutar motor de reglas
     const { validaciones, advertencias } = ejecutarReglas(

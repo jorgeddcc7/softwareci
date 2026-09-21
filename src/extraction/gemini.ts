@@ -101,8 +101,8 @@ export async function analizarPdf(
 ): Promise<string> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 2;
-  const ESPERA_BASE_MS = 5000; // 5 segundos
+  const INTENTOS_POR_MODELO = 1;
+  const ESPERA_BASE_MS = 3000; // 3 segundos (por si acaso)
 
   let ultimoError: unknown = null;
 
@@ -216,8 +216,8 @@ export async function evaluarEspecificidad(
 }> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 2;
-  const ESPERA_BASE_MS = 5000;
+  const INTENTOS_POR_MODELO = 1;
+  const ESPERA_BASE_MS = 3000;
 
   let ultimoError: unknown = null;
 
