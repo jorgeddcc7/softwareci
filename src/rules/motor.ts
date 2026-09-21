@@ -532,7 +532,7 @@ function reglaINV_PL_042(
     validaciones.push(
       crearValidacion(
         "INV-PL-042",
-        "El peso bruto es mayor o igual que el peso neto",
+        "Relación peso bruto / peso neto",
         "discrepancia",
         "alta",
         ["packing_list"],
@@ -553,7 +553,7 @@ function reglaINV_PL_042(
       validaciones.push(
         crearValidacion(
           "INV-PL-042",
-          "El peso bruto es mayor o igual que el peso neto",
+          "Relación peso bruto / peso neto",
           "discrepancia",
           "alta",
           ["packing_list"],
@@ -1708,6 +1708,95 @@ function reglaPL_BL_003(
 }
 
 // ------------------------------------------------------------
+// Acciones sugeridas por regla
+// ------------------------------------------------------------
+//
+// Cada regla de discrepancia tiene una acción recomendada que se
+// muestra al usuario en la web. Es texto fijo por regla en v1.
+// En v2 podría generarse con IA según el contexto.
+// ------------------------------------------------------------
+
+export const ACCIONES_SUGERIDAS: Record<string, string> = {
+  // Referencia y partes
+  "INV-PL-001":
+    "Verificar que la factura y el packing list corresponden a la misma operación.",
+  "INV-PL-002":
+    "Confirmar si el vendedor de la factura y el expedidor del packing son la misma entidad. Si son distintos (matriz/filial), documentarlo.",
+  "INV-PL-003":
+    "Comprobar que el comprador de la factura y el destinatario del packing coinciden. Si son distintos, documentar la relación.",
+  "INV-PL-004":
+    "Confirmar el consignatario correcto. Debe coincidir entre factura y packing list.",
+  "INV-PL-005":
+    "Revisar las fechas de emisión. Si hay diferencia significativa, confirmar la secuencia real de los documentos.",
+
+  // Líneas y cantidades
+  "INV-PL-010":
+    "Comprobar que todas las líneas de la factura aparecen representadas en el packing list.",
+  "INV-PL-011":
+    "Revisar la cantidad total facturada y la del packing list. Identificar qué línea genera la diferencia.",
+  "INV-PL-013":
+    "Verificar el código HS en ambos documentos. Si hay discrepancia, confirmar con el proveedor.",
+
+  // Bultos
+  "INV-PL-030":
+    "Verificar con el proveedor y el transportista cuál es el número correcto de bultos antes de enviar la documentación al agente de aduanas.",
+  "INV-PL-031":
+    "Unificar el tipo de bultos declarado en factura y packing list (cajas, pallets, etc.).",
+
+  // Pesos
+  "INV-PL-040":
+    "Verificar con el proveedor el peso neto correcto. Corregir el documento que esté mal.",
+  "INV-PL-041":
+    "Verificar con el proveedor y el transportista el peso bruto correcto. Suele coincidir con el declarado en el B/L.",
+  "INV-PL-042":
+    "Corregir el documento: el peso bruto nunca puede ser menor que el peso neto.",
+
+  // Valoración
+  "INV-050":
+    "Revisar la factura: la suma de líneas no cuadra con el subtotal. Verificar precios y cantidades.",
+  "INV-051":
+    "Revisar la factura: la suma de componentes no cuadra con el total. Verificar cargos, descuentos e impuestos.",
+
+  // Moneda e Incoterm
+  "INV-PL-052":
+    "Añadir la moneda a la factura antes del despacho.",
+  "INV-PL-061":
+    "Añadir el Incoterm en la factura con su lugar designado (ej: FOB Shanghai).",
+
+  // Descripciones
+  "INV-020":
+    "Ampliar la descripción con composición, uso, modelo o referencia. Las descripciones genéricas pueden generar retenciones en aduana.",
+  "INV-021":
+    "Mejorar la descripción siguiendo la sugerencia del análisis. Detallar qué es, para qué sirve y características técnicas.",
+
+  // Factura vs B/L
+  "INV-BL-001":
+    "Verificar que el B/L referencia la factura correcta. Si no, contactar al transitario.",
+  "INV-BL-002":
+    "Comprobar que el expedidor del B/L coincide con el vendedor de la factura.",
+  "INV-BL-003":
+    "Comprobar que el consignatario del B/L coincide con el de la factura.",
+  "INV-BL-010":
+    "Verificar con el transportista el número de bultos declarado en el B/L.",
+  "INV-BL-011":
+    "Verificar con el transportista el peso bruto declarado en el B/L.",
+  "INV-BL-012":
+    "Verificar el Incoterm declarado en el B/L y comprobar que coincide con el de la factura.",
+
+  // Packing vs B/L
+  "PL-BL-001":
+    "El packing list y el B/L deben coincidir en el número de bultos. Verificar con el proveedor y el transportista.",
+  "PL-BL-002":
+    "El packing list y el B/L deben coincidir en el peso bruto. Verificar con el proveedor y el transportista.",
+  "PL-BL-003":
+    "Unificar el tipo de bultos declarado entre packing list y B/L.",
+
+  // Campos obligatorios
+  "GEN-070":
+    "Añadir el campo obligatorio al documento antes del despacho.",
+};
+
+// ------------------------------------------------------------
 // Orquestador
 // ------------------------------------------------------------
 
@@ -1758,6 +1847,13 @@ export function ejecutarReglas(
   }
 
   const advertencias = reglaGEN_071(factura, packing);
+
+  // Enriquecer con acciones sugeridas
+  for (const v of validaciones) {
+    if (v.resultado === "discrepancia") {
+      v.accion_sugerida = ACCIONES_SUGERIDAS[v.regla] ?? "";
+    }
+  }
 
   return { validaciones, advertencias, descripciones_a_evaluar };
 }

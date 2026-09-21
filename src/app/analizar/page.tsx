@@ -12,6 +12,7 @@ interface Validacion {
   campos: string[];
   valores: Record<string, unknown>;
   nota: string;
+  accion_sugerida?: string;
 }
 
 interface ResultadoAnalisis {
@@ -375,6 +376,11 @@ function BloqueValidaciones({
             {v.nota && (
               <p className="text-sm text-muted mt-1.5 leading-relaxed">
                 {v.nota}
+              </p>
+            )}
+            {v.accion_sugerida && (
+              <p className="text-xs text-primary mt-2 leading-relaxed">
+                <strong>Acción sugerida:</strong> {v.accion_sugerida}
               </p>
             )}
           </div>

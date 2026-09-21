@@ -340,6 +340,7 @@ export interface Validacion {
   campos: string[];
   valores: Record<string, unknown>;
   nota: string;
+  accion_sugerida?: string;
 }
 
 /**

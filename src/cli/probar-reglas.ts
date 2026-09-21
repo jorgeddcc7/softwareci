@@ -15,7 +15,7 @@ import "dotenv/config";
 import * as fs from "fs";
 import * as path from "path";
 import { FacturaComercial, PackingList, DocumentoTransporte, Validacion } from "../types/documentos.js";
-import { ejecutarReglas, generarValidacionesINV_021 } from "../rules/motor.js";
+import { ejecutarReglas, generarValidacionesINV_021, ACCIONES_SUGERIDAS } from "../rules/motor.js";
 import { promptEspecificidad } from "../extraction/prompt-especificidad.js";
 import { evaluarEspecificidad } from "../extraction/gemini.js";
 
@@ -50,6 +50,9 @@ function imprimirValidacion(v: Validacion) {
   console.log(`   Campos: ${v.campos.join(", ")}`);
   if (v.nota) {
     console.log(`   Nota: ${v.nota}`);
+  }
+  if (v.accion_sugerida) {
+    console.log(`   ➜ Acción sugerida: ${v.accion_sugerida}`);
   }
   console.log("");
 }
@@ -137,6 +140,10 @@ async function main() {
     console.log("");
 
     const inv021 = generarValidacionesINV_021(resultados);
+    // Enriquecer con acciones
+    for (const v of inv021) {
+      v.accion_sugerida = ACCIONES_SUGERIDAS[v.regla] ?? "";
+    }
     validacionesINV021.push(...inv021);
   }
 
