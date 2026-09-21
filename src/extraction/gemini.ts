@@ -19,7 +19,11 @@ import path from "path";
  * Modelo a usar. Gemini Flash es el más rápido y barato,
  * y está incluido en el nivel gratuito.
  */
-const MODELO = "gemini-3.6-flash";
+const MODELOS_FALLBACK = [
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash",
+];
 
 /**
  * Verifica que la API key esté configurada.
@@ -81,70 +85,86 @@ return archivo.uri;
  * Si Gemini devuelve 503 (servidor saturado) o 429 (rate limit),
  * reintenta hasta 3 veces con espera creciente entre intentos.
  */
+/**
+ * Envía un PDF ya subido + un prompt al modelo y devuelve
+ * la respuesta como texto.
+ *
+ * Estrategia de fallback:
+ * - Prueba cada modelo de la lista MODELOS_FALLBACK en orden.
+ * - Cada modelo tiene 2 intentos con espera creciente.
+ * - Si un modelo falla 2 veces, pasa al siguiente.
+ * - Si todos fallan, lanza error.
+ */
 export async function analizarPdf(
   uriPdf: string,
   prompt: string
 ): Promise<string> {
   const cliente = crearCliente();
 
-  const MAX_INTENTOS = 3;
+  const INTENTOS_POR_MODELO = 2;
   const ESPERA_BASE_MS = 5000; // 5 segundos
 
   let ultimoError: unknown = null;
 
-  for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
-    try {
-      console.log(`  Enviando a Gemini (intento ${intento}/${MAX_INTENTOS})...`);
-
-      const respuesta = await cliente.models.generateContent({
-        model: MODELO,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                fileData: {
-                  fileUri: uriPdf,
-                  mimeType: "application/pdf",
-                },
-              },
-            ],
-          },
-        ],
-      });
-
-      const texto = respuesta.text;
-      if (!texto) {
-        throw new Error("Gemini no devolvió texto en la respuesta.");
-      }
-
-      console.log(`  Respuesta recibida (${texto.length} caracteres).`);
-      return texto;
-    } catch (error: unknown) {
-      ultimoError = error;
-
-      // Detectar si es un error recuperable (503 o 429)
-      const esRecuperable = detectarErrorRecuperable(error);
-
-      if (!esRecuperable) {
-        // Error no recuperable: lanzamos inmediatamente
-        throw error;
-      }
-
-      if (intento < MAX_INTENTOS) {
-        const espera = ESPERA_BASE_MS * intento;
+  for (const modelo of MODELOS_FALLBACK) {
+    for (let intento = 1; intento <= INTENTOS_POR_MODELO; intento++) {
+      try {
         console.log(
-          `  Gemini saturado. Reintentando en ${espera / 1000}s...`
+          `  Enviando a Gemini [${modelo}] (intento ${intento}/${INTENTOS_POR_MODELO})...`
         );
-        await new Promise((resolve) => setTimeout(resolve, espera));
+
+        const respuesta = await cliente.models.generateContent({
+          model: modelo,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  fileData: {
+                    fileUri: uriPdf,
+                    mimeType: "application/pdf",
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const texto = respuesta.text;
+        if (!texto) {
+          throw new Error("Gemini no devolvió texto en la respuesta.");
+        }
+
+        console.log(`  Respuesta recibida (${texto.length} caracteres).`);
+        return texto;
+      } catch (error: unknown) {
+        ultimoError = error;
+
+        const esRecuperable = detectarErrorRecuperable(error);
+
+        if (!esRecuperable) {
+          // Error no recuperable: lanzamos inmediatamente
+          throw error;
+        }
+
+        if (intento < INTENTOS_POR_MODELO) {
+          const espera = ESPERA_BASE_MS * intento;
+          console.log(
+            `  [${modelo}] saturado. Reintentando en ${espera / 1000}s...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, espera));
+        } else {
+          console.log(
+            `  [${modelo}] falló tras ${INTENTOS_POR_MODELO} intentos. Probando siguiente modelo...`
+          );
+        }
       }
     }
   }
 
-  // Se agotaron los reintentos
   throw new Error(
-    `Gemini no respondió tras ${MAX_INTENTOS} intentos. Último error: ${String(ultimoError)}`
+    `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
   );
 }
 
@@ -181,6 +201,10 @@ function detectarErrorRecuperable(error: unknown): boolean {
  * Solo se llama para descripciones que NO han sido detectadas
  * por la lista negra determinista.
  */
+/**
+ * Evalúa si una descripción comercial es suficientemente específica.
+ * Usa la misma estrategia de fallback que analizarPdf.
+ */
 export async function evaluarEspecificidad(
   prompt: string
 ): Promise<{
@@ -192,50 +216,57 @@ export async function evaluarEspecificidad(
 }> {
   const cliente = crearCliente();
 
-  const MAX_INTENTOS = 3;
+  const INTENTOS_POR_MODELO = 2;
   const ESPERA_BASE_MS = 5000;
 
   let ultimoError: unknown = null;
 
-  for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
-    try {
-      const respuesta = await cliente.models.generateContent({
-        model: MODELO,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      });
+  for (const modelo of MODELOS_FALLBACK) {
+    for (let intento = 1; intento <= INTENTOS_POR_MODELO; intento++) {
+      try {
+        const respuesta = await cliente.models.generateContent({
+          model: modelo,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        });
 
-      const texto = respuesta.text;
-      if (!texto) {
-        throw new Error("Gemini no devolvió texto en la respuesta.");
-      }
+        const texto = respuesta.text;
+        if (!texto) {
+          throw new Error("Gemini no devolvió texto en la respuesta.");
+        }
 
-      // Limpiar posible markdown
-      let limpio = texto.trim();
-      if (limpio.startsWith("```")) {
-        limpio = limpio.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
-      }
+        let limpio = texto.trim();
+        if (limpio.startsWith("```")) {
+          limpio = limpio.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+        }
 
-      return JSON.parse(limpio);
-    } catch (error: unknown) {
-      ultimoError = error;
+        return JSON.parse(limpio);
+      } catch (error: unknown) {
+        ultimoError = error;
 
-      const esRecuperable = detectarErrorRecuperable(error);
-      if (!esRecuperable) throw error;
+        const esRecuperable = detectarErrorRecuperable(error);
+        if (!esRecuperable) throw error;
 
-      if (intento < MAX_INTENTOS) {
-        const espera = ESPERA_BASE_MS * intento;
-        console.log(`  Gemini saturado. Reintentando en ${espera / 1000}s...`);
-        await new Promise((resolve) => setTimeout(resolve, espera));
+        if (intento < INTENTOS_POR_MODELO) {
+          const espera = ESPERA_BASE_MS * intento;
+          console.log(
+            `  [${modelo}] saturado. Reintentando en ${espera / 1000}s...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, espera));
+        } else {
+          console.log(
+            `  [${modelo}] falló tras ${INTENTOS_POR_MODELO} intentos. Probando siguiente modelo...`
+          );
+        }
       }
     }
   }
 
   throw new Error(
-    `Gemini no respondió tras ${MAX_INTENTOS} intentos. Último error: ${String(ultimoError)}`
+    `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
   );
 }

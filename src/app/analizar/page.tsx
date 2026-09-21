@@ -2,10 +2,6 @@
 
 import { useState } from "react";
 
-// ------------------------------------------------------------
-// Tipos de la respuesta del API
-// ------------------------------------------------------------
-
 interface Validacion {
   regla: string;
   descripcion: string;
@@ -29,25 +25,27 @@ interface ResultadoAnalisis {
     numero: string | null;
     referencia_factura: string | null;
   };
+  transporte: {
+    numero: string | null;
+    puerto_carga: string | null;
+    puerto_descarga: string | null;
+  } | null;
   resultado_global: "apto" | "revisar" | "no_apto";
   validaciones: Validacion[];
   advertencias: string[];
 }
 
-// ------------------------------------------------------------
-// Página
-// ------------------------------------------------------------
-
 export default function AnalizarPage() {
   const [factura, setFactura] = useState<File | null>(null);
   const [packing, setPacking] = useState<File | null>(null);
+  const [transporte, setTransporte] = useState<File | null>(null);
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleAnalizar() {
     if (!factura || !packing) {
-      setError("Selecciona los dos archivos antes de analizar.");
+      setError("Selecciona al menos la factura y el packing list.");
       return;
     }
 
@@ -59,6 +57,9 @@ export default function AnalizarPage() {
       const formData = new FormData();
       formData.append("factura", factura);
       formData.append("packing", packing);
+      if (transporte) {
+        formData.append("transporte", transporte);
+      }
 
       const respuesta = await fetch("/api/analizar", {
         method: "POST",
@@ -88,32 +89,40 @@ export default function AnalizarPage() {
         Analizar documentos
       </h1>
       <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Sube la factura comercial y el packing list. El sistema los comparará y
-        detectará incoherencias.
+        Sube la factura comercial, el packing list y (opcionalmente) el
+        documento de transporte. El sistema los comparará y detectará
+        incoherencias.
       </p>
 
-      {/* Zonas de subida */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "1fr 1fr 1fr",
           gap: "1rem",
           marginBottom: "1.5rem",
         }}
       >
         <ZonaSubida
           etiqueta="Factura comercial"
+          requerido={true}
           archivo={factura}
           onArchivo={setFactura}
         />
         <ZonaSubida
           etiqueta="Packing list"
+          requerido={true}
           archivo={packing}
           onArchivo={setPacking}
         />
+        <ZonaSubida
+          etiqueta="Documento de transporte"
+          subtitulo="Opcional (B/L, AWB, CMR)"
+          requerido={false}
+          archivo={transporte}
+          onArchivo={setTransporte}
+        />
       </div>
 
-      {/* Botón */}
       <button
         onClick={handleAnalizar}
         disabled={analizando || !factura || !packing}
@@ -132,7 +141,7 @@ export default function AnalizarPage() {
 
       {analizando && (
         <p style={{ marginTop: "1rem", color: "#666" }}>
-          Procesando con IA. Esto puede tardar 20-40 segundos.
+          Procesando con IA. Esto puede tardar 30-90 segundos.
         </p>
       )}
 
@@ -156,16 +165,16 @@ export default function AnalizarPage() {
   );
 }
 
-// ------------------------------------------------------------
-// Componente: zona de subida de un archivo
-// ------------------------------------------------------------
-
 function ZonaSubida({
   etiqueta,
+  subtitulo,
+  requerido,
   archivo,
   onArchivo,
 }: {
   etiqueta: string;
+  subtitulo?: string;
+  requerido: boolean;
   archivo: File | null;
   onArchivo: (f: File | null) => void;
 }) {
@@ -179,25 +188,32 @@ function ZonaSubida({
         background: archivo ? "#f0f8ff" : "#fafafa",
       }}
     >
-      <p style={{ fontWeight: 600, marginBottom: "0.75rem" }}>{etiqueta}</p>
+      <p style={{ fontWeight: 600, marginBottom: "0.25rem" }}>{etiqueta}</p>
+      {subtitulo && (
+        <p style={{ fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" }}>
+          {subtitulo}
+        </p>
+      )}
+      {!subtitulo && <div style={{ height: "1.25rem" }} />}
       <input
         type="file"
         accept="application/pdf"
         onChange={(e) => onArchivo(e.target.files?.[0] ?? null)}
-        style={{ fontSize: "0.9rem" }}
+        style={{ fontSize: "0.85rem", maxWidth: "100%" }}
       />
       {archivo && (
         <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#0066cc" }}>
-          {archivo.name}
+          ✓ {archivo.name}
+        </p>
+      )}
+      {!archivo && requerido && (
+        <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "#b36b00" }}>
+          Requerido
         </p>
       )}
     </div>
   );
 }
-
-// ------------------------------------------------------------
-// Componente: mostrar resultado
-// ------------------------------------------------------------
 
 function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
   const altas = resultado.validaciones.filter(
@@ -230,7 +246,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
 
   return (
     <div style={{ marginTop: "2rem" }}>
-      {/* Resumen */}
       <div
         style={{
           padding: "1rem 1.5rem",
@@ -247,10 +262,18 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "0.5rem" }}>
           Factura: {resultado.factura.numero ?? "—"} · Packing:{" "}
           {resultado.packing.numero ?? "—"}
+          {resultado.transporte && (
+            <> · Transporte: {resultado.transporte.numero ?? "—"}</>
+          )}
         </p>
+        {resultado.transporte && (
+          <p style={{ fontSize: "0.85rem", color: "#888", marginTop: "0.25rem" }}>
+            Ruta: {resultado.transporte.puerto_carga ?? "—"} →{" "}
+            {resultado.transporte.puerto_descarga ?? "—"}
+          </p>
+        )}
       </div>
 
-      {/* Discrepancias altas */}
       {altas.length > 0 && (
         <BloqueValidaciones
           titulo={`🔴 Discrepancias graves (${altas.length})`}
@@ -259,7 +282,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         />
       )}
 
-      {/* Discrepancias medias */}
       {medias.length > 0 && (
         <BloqueValidaciones
           titulo={`🟡 Discrepancias medias (${medias.length})`}
@@ -268,7 +290,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         />
       )}
 
-      {/* Discrepancias bajas */}
       {bajas.length > 0 && (
         <BloqueValidaciones
           titulo={`🟢 Discrepancias leves (${bajas.length})`}
@@ -277,7 +298,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         />
       )}
 
-      {/* No comprobables */}
       {noComprobables.length > 0 && (
         <BloqueValidaciones
           titulo={`⚠️ No comprobables (${noComprobables.length})`}
@@ -286,7 +306,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         />
       )}
 
-      {/* Advertencias */}
       {resultado.advertencias.length > 0 && (
         <div
           style={{
@@ -310,7 +329,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         </div>
       )}
 
-      {/* Resumen final */}
       <div
         style={{
           marginTop: "1.5rem",
