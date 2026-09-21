@@ -112,8 +112,17 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-border mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-6 text-center text-sm text-muted">
-          Controlador de Documentos de Comercio Exterior · Prototipo v0.1
+        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
+          <p>Controlador de Documentos de Comercio Exterior · Prototipo v0.1</p>
+          <p>
+            ¿Comentarios o sugerencias?{" "}
+            <a
+              href="mailto:calculaincoterms@gmail.com"
+              className="text-primary hover:text-primary-hover transition-colors"
+            >
+              Escríbenos
+            </a>
+          </p>
         </div>
       </footer>
     </div>

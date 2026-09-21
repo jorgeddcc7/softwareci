@@ -159,7 +159,13 @@ export default function AnalizarPage() {
 
         {error && (
           <div className="mt-6 p-4 bg-high-bg border border-red-200 rounded-lg text-high-text text-sm">
-            {error}
+            <p className="mb-3">{error}</p>
+            <button
+              onClick={handleAnalizar}
+              className="px-4 py-2 bg-white border border-high-text text-high-text text-xs font-medium rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Reintentar
+            </button>
           </div>
         )}
 
