@@ -154,7 +154,7 @@ function reglaINV_PL_001(
   if (!numeroFactura) {
     return crearValidacion(
       "INV-PL-001",
-      "El número de factura referenciado en el packing list coincide con la factura",
+      "Número de factura: factura vs packing list",
       "no_comprobable",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -185,7 +185,7 @@ function reglaINV_PL_001(
   if (numeroDocumentoPacking && textosEquivalentes(numeroFactura, numeroDocumentoPacking)) {
     return crearValidacion(
       "INV-PL-001",
-      "El número de factura referenciado en el packing list coincide con la factura",
+      "Número de factura: factura vs packing list",
       "ok",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -198,7 +198,7 @@ function reglaINV_PL_001(
   // Caso 4: no hay forma de comprobar
   return crearValidacion(
     "INV-PL-001",
-    "El número de factura referenciado en el packing list coincide con la factura",
+    "Número de factura: factura vs packing list",
     "no_comprobable",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -222,7 +222,7 @@ function reglaINV_PL_010(
   if (packing.bultos.length === 0) {
     return crearValidacion(
       "INV-PL-010",
-      "Cada línea de la factura está representada en el packing list",
+      "Líneas de la factura representadas en el packing list",
       "no_comprobable",
       "media",
       ["factura_comercial", "packing_list"],
@@ -235,7 +235,7 @@ function reglaINV_PL_010(
   if (factura.lineas.length === 0) {
     return crearValidacion(
       "INV-PL-010",
-      "Cada línea de la factura está representada en el packing list",
+      "Líneas de la factura representadas en el packing list",
       "no_comprobable",
       "media",
       ["factura_comercial", "packing_list"],
@@ -247,7 +247,7 @@ function reglaINV_PL_010(
 
   return crearValidacion(
     "INV-PL-010",
-    "Cada línea de la factura está representada en el packing list",
+    "Líneas de la factura representadas en el packing list",
     "ok",
     "media",
     ["factura_comercial", "packing_list"],
@@ -291,7 +291,7 @@ function reglaINV_PL_011(
   if (!tieneCantidadesFactura || !tieneCantidadesPacking) {
     return crearValidacion(
       "INV-PL-011",
-      "La suma de cantidades del packing list coincide con la factura",
+      "Suma de cantidades: factura vs packing list",
       "no_comprobable",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -316,7 +316,7 @@ function reglaINV_PL_011(
 
   return crearValidacion(
     "INV-PL-011",
-    "La suma de cantidades del packing list coincide con la factura",
+    "Suma de cantidades: factura vs packing list",
     "discrepancia",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -338,7 +338,7 @@ function reglaINV_PL_013(
   // Se activará cuando extraigamos HS del packing list.
   return crearValidacion(
     "INV-PL-013",
-    "El código HS es consistente entre factura y packing list",
+    "Código HS: factura vs packing list",
     "no_comprobable",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -361,7 +361,7 @@ function reglaINV_PL_030(
   if (bultosFactura === null || bultosPacking === null) {
     return crearValidacion(
       "INV-PL-030",
-      "El número de bultos coincide entre factura y packing list",
+      "Número de bultos: factura vs packing list",
       "no_comprobable",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -387,7 +387,7 @@ function reglaINV_PL_030(
   const diferencia = Math.abs(bultosFactura - bultosPacking);
   return crearValidacion(
     "INV-PL-030",
-    "El número de bultos coincide entre factura y packing list",
+    "Número de bultos: factura vs packing list",
     "discrepancia",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -410,7 +410,7 @@ function reglaINV_PL_040(
   if (netoFactura === null || netoPacking === null) {
     return crearValidacion(
       "INV-PL-040",
-      "El peso neto coincide entre factura y packing list",
+      "Peso neto: factura vs packing list",
       "no_comprobable",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -437,7 +437,7 @@ function reglaINV_PL_040(
   const porcentaje = ((diferencia / Math.max(netoFactura, netoPacking)) * 100).toFixed(2);
   return crearValidacion(
     "INV-PL-040",
-    "El peso neto coincide entre factura y packing list",
+    "Peso neto: factura vs packing list",
     "discrepancia",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -460,7 +460,7 @@ function reglaINV_PL_041(
   if (brutoFactura === null || brutoPacking === null) {
     return crearValidacion(
       "INV-PL-041",
-      "El peso bruto coincide entre factura y packing list",
+      "Peso bruto: factura vs packing list",
       "no_comprobable",
       "alta",
       ["factura_comercial", "packing_list"],
@@ -487,7 +487,7 @@ function reglaINV_PL_041(
   const porcentaje = ((diferencia / Math.max(brutoFactura, brutoPacking)) * 100).toFixed(2);
   return crearValidacion(
     "INV-PL-041",
-    "El peso bruto coincide entre factura y packing list",
+    "Peso bruto: factura vs packing list",
     "discrepancia",
     "alta",
     ["factura_comercial", "packing_list"],
@@ -514,7 +514,7 @@ function reglaINV_PL_042(
     validaciones.push(
       crearValidacion(
         "INV-PL-042",
-        "El peso bruto es mayor o igual que el peso neto",
+        "Peso bruto ≥ peso neto",
         "discrepancia",
         "alta",
         ["factura_comercial"],
@@ -586,7 +586,7 @@ function reglaINV_050(factura: FacturaComercial): Validacion {
   if (subtotal === null || !tieneLineas) {
     return crearValidacion(
       "INV-050",
-      "La suma de los valores de línea coincide con el subtotal de la factura",
+      "Cuadre de líneas vs subtotal (factura)",
       "no_comprobable",
       "alta",
       ["factura_comercial"],
@@ -612,7 +612,7 @@ function reglaINV_050(factura: FacturaComercial): Validacion {
   const diferencia = Math.abs(sumaLíneas - subtotal);
   return crearValidacion(
     "INV-050",
-    "La suma de los valores de línea coincide con el subtotal de la factura",
+    "Cuadre de líneas vs subtotal (factura)",
     "discrepancia",
     "alta",
     ["factura_comercial"],
@@ -636,7 +636,7 @@ function reglaINV_051(factura: FacturaComercial): Validacion {
   if (subtotal === null || total === null) {
     return crearValidacion(
       "INV-051",
-      "El cuadre de la factura (subtotal - descuentos + cargos) coincide con el total",
+      "Cuadre total de la factura",
       "no_comprobable",
       "alta",
       ["factura_comercial"],
@@ -664,7 +664,7 @@ function reglaINV_051(factura: FacturaComercial): Validacion {
   const diferencia = Math.abs(calculado - total);
   return crearValidacion(
     "INV-051",
-    "El cuadre de la factura (subtotal - descuentos + cargos) coincide con el total",
+    "Cuadre total de la factura",
     "discrepancia",
     "alta",
     ["factura_comercial"],
@@ -688,7 +688,7 @@ function reglaINV_PL_052(
   if (!monedaFactura) {
     return crearValidacion(
       "INV-PL-052",
-      "La moneda está indicada en la factura",
+      "Moneda en la factura",
       "no_comprobable",
       "alta",
       ["factura_comercial"],
@@ -723,7 +723,7 @@ function reglaINV_PL_061(
   if (!incoterm) {
     return crearValidacion(
       "INV-PL-061",
-      "El Incoterm está indicado en la factura",
+      "Incoterm en la factura (con lugar designado)",
       "discrepancia",
       "media",
       ["factura_comercial"],
@@ -775,7 +775,7 @@ function reglaGEN_070(
       validaciones.push(
         crearValidacion(
           "GEN-070",
-          `Campo obligatorio ausente en factura: ${nombreCampo}`,
+          `Campo obligatorio ausente factura: ${nombreCampo}`,
           "discrepancia",
           "alta",
           ["factura_comercial"],
@@ -890,7 +890,7 @@ function reglaINV_PL_002(
   if (!vendedor || !expedidor) {
     return crearValidacion(
       "INV-PL-002",
-      "El vendedor de la factura coincide con el expedidor del packing list",
+      "Vendedor / Expedidor: factura vs packing list",
       "no_comprobable",
       "media",
       ["factura_comercial", "packing_list"],
@@ -915,7 +915,7 @@ function reglaINV_PL_002(
 
   return crearValidacion(
     "INV-PL-002",
-    "El vendedor de la factura coincide con el expedidor del packing list",
+    "Vendedor / Expedidor: factura vs packing list",
     "discrepancia",
     "media",
     ["factura_comercial", "packing_list"],
@@ -938,7 +938,7 @@ function reglaINV_PL_003(
   if (!comprador || !destinatario) {
     return crearValidacion(
       "INV-PL-003",
-      "El comprador de la factura coincide con el destinatario del packing list",
+      "Comprador / Destinatario: factura vs packing list",
       "no_comprobable",
       "media",
       ["factura_comercial", "packing_list"],
@@ -963,7 +963,7 @@ function reglaINV_PL_003(
 
   return crearValidacion(
     "INV-PL-003",
-    "El comprador de la factura coincide con el destinatario del packing list",
+    "Comprador / Destinatario: factura vs packing list",
     "discrepancia",
     "media",
     ["factura_comercial", "packing_list"],
@@ -987,7 +987,7 @@ function reglaINV_PL_004(
   if (!consignatarioFactura || !consignatarioPacking) {
     return crearValidacion(
       "INV-PL-004",
-      "El consignatario coincide entre factura y packing list",
+      "Consignatario: factura vs packing list",
       "no_comprobable",
       "baja",
       ["factura_comercial", "packing_list"],
@@ -1012,7 +1012,7 @@ function reglaINV_PL_004(
 
   return crearValidacion(
     "INV-PL-004",
-    "El consignatario coincide entre factura y packing list",
+    "Consignatario: factura vs packing list",
     "discrepancia",
     "media",
     ["factura_comercial", "packing_list"],
@@ -1035,7 +1035,7 @@ function reglaINV_PL_005(
   if (!fechaFactura || !fechaPacking) {
     return crearValidacion(
       "INV-PL-005",
-      "Las fechas de emisión de factura y packing list son coherentes",
+      "Fechas de emisión: factura vs packing list",
       "no_comprobable",
       "baja",
       ["factura_comercial", "packing_list"],
@@ -1051,7 +1051,7 @@ function reglaINV_PL_005(
   if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
     return crearValidacion(
       "INV-PL-005",
-      "Las fechas de emisión de factura y packing list son coherentes",
+      "Fechas de emisión: factura vs packing list",
       "no_comprobable",
       "baja",
       ["factura_comercial", "packing_list"],
@@ -1066,7 +1066,7 @@ function reglaINV_PL_005(
   if (diffDias <= 7) {
     return crearValidacion(
       "INV-PL-005",
-      "Las fechas de emisión de factura y packing list son coherentes",
+      "Fechas de emisión: factura vs packing list",
       "ok",
       "baja",
       ["factura_comercial", "packing_list"],
@@ -1078,7 +1078,7 @@ function reglaINV_PL_005(
 
   return crearValidacion(
     "INV-PL-005",
-    "Las fechas de emisión de factura y packing list son coherentes",
+    "Fechas de emisión: factura vs packing list",
     "discrepancia",
     "baja",
     ["factura_comercial", "packing_list"],
@@ -1101,7 +1101,7 @@ function reglaINV_PL_031(
   if (!tipoFactura || !tipoPacking) {
     return crearValidacion(
       "INV-PL-031",
-      "El tipo de bultos es coherente entre factura y packing list",
+      "Tipo de bultos: factura vs packing list",
       "no_comprobable",
       "media",
       ["factura_comercial", "packing_list"],
@@ -1249,7 +1249,7 @@ function reglaINV_020(factura: FacturaComercial): {
       validaciones.push(
         crearValidacion(
           "INV-020",
-          "La descripción de la mercancía es suficientemente específica",
+          "Especificidad de la descripción (lista negra)",
           "discrepancia",
           "media",
           ["factura_comercial"],
@@ -1298,7 +1298,7 @@ export function generarValidacionesINV_021(
     validaciones.push(
       crearValidacion(
         "INV-021",
-        "La descripción de la mercancía es suficientemente específica (evaluación IA)",
+        "Especificidad de la descripción (evaluación IA)",
         "discrepancia",
         "media",
         ["factura_comercial"],
@@ -1337,7 +1337,7 @@ function reglaINV_BL_001(
   if (!numeroFactura || !referenciaBL) {
     return crearValidacion(
       "INV-BL-001",
-      "El número de factura referenciado en el B/L coincide con la factura",
+      "Número de factura: factura vs B/L",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1376,7 +1376,7 @@ function reglaINV_BL_002(
   if (!vendedor || !expedidor) {
     return crearValidacion(
       "INV-BL-002",
-      "El expedidor del B/L coincide con el vendedor de la factura",
+      "Vendedor / Expedidor: factura vs B/L",
       "no_comprobable",
       "media",
       ["factura_comercial", "documento_transporte"],
@@ -1415,7 +1415,7 @@ function reglaINV_BL_003(
   if (!consignatarioFactura || !consignatarioBL) {
     return crearValidacion(
       "INV-BL-003",
-      "El consignatario del B/L coincide con el consignatario de la factura",
+      "Consignatario: factura vs B/L",
       "no_comprobable",
       "media",
       ["factura_comercial", "documento_transporte"],
@@ -1454,7 +1454,7 @@ function reglaINV_BL_010(
   if (bultosFactura === null || bultosBL === null) {
     return crearValidacion(
       "INV-BL-010",
-      "El número de bultos coincide entre factura y B/L",
+      "Número de bultos: factura vs B/L",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1480,7 +1480,7 @@ function reglaINV_BL_010(
   const diferencia = Math.abs(bultosFactura - bultosBL);
   return crearValidacion(
     "INV-BL-010",
-    "El número de bultos coincide entre factura y B/L",
+    "Número de bultos: factura vs B/L",
     "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
@@ -1503,7 +1503,7 @@ function reglaINV_BL_011(
   if (brutoFactura === null || brutoBL === null) {
     return crearValidacion(
       "INV-BL-011",
-      "El peso bruto coincide entre factura y B/L",
+      "Peso bruto: factura vs B/L",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1530,7 +1530,7 @@ function reglaINV_BL_011(
   const porcentaje = ((diferencia / Math.max(brutoFactura, brutoBL)) * 100).toFixed(2);
   return crearValidacion(
     "INV-BL-011",
-    "El peso bruto coincide entre factura y B/L",
+    "Peso bruto: factura vs B/L",
     "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
@@ -1554,7 +1554,7 @@ function reglaINV_BL_012(
 
   return crearValidacion(
     "INV-BL-012",
-    "El Incoterm del B/L coincide con el de la factura",
+    "Incoterm: factura vs B/L",
     "no_comprobable",
     "media",
     ["factura_comercial", "documento_transporte"],
@@ -1577,7 +1577,7 @@ function reglaPL_BL_001(
   if (bultosPacking === null || bultosBL === null) {
     return crearValidacion(
       "PL-BL-001",
-      "El número de bultos coincide entre packing list y B/L",
+      "Número de bultos: packing vs B/L",
       "no_comprobable",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1603,7 +1603,7 @@ function reglaPL_BL_001(
   const diferencia = Math.abs(bultosPacking - bultosBL);
   return crearValidacion(
     "PL-BL-001",
-    "El número de bultos coincide entre packing list y B/L",
+    "Número de bultos: packing vs B/L",
     "discrepancia",
     "alta",
     ["packing_list", "documento_transporte"],
@@ -1626,7 +1626,7 @@ function reglaPL_BL_002(
   if (brutoPacking === null || brutoBL === null) {
     return crearValidacion(
       "PL-BL-002",
-      "El peso bruto coincide entre packing list y B/L",
+      "Peso bruto: packing vs B/L",
       "no_comprobable",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1653,7 +1653,7 @@ function reglaPL_BL_002(
   const porcentaje = ((diferencia / Math.max(brutoPacking, brutoBL)) * 100).toFixed(2);
   return crearValidacion(
     "PL-BL-002",
-    "El peso bruto coincide entre packing list y B/L",
+    "Peso bruto: packing vs B/L",
     "discrepancia",
     "alta",
     ["packing_list", "documento_transporte"],
@@ -1676,7 +1676,7 @@ function reglaPL_BL_003(
   if (!tipoPacking || !tipoBL) {
     return crearValidacion(
       "PL-BL-003",
-      "El tipo de bultos coincide entre packing list y B/L",
+      "Tipo de bultos: packing vs B/L",
       "no_comprobable",
       "media",
       ["packing_list", "documento_transporte"],
