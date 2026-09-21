@@ -1790,15 +1790,64 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
     "El packing list y el documento de transporte deben coincidir en el peso bruto. Verificar con el proveedor y el transportista.",
   "PL-BL-003":
     "Unificar el tipo de bultos declarado entre packing list y documento de transporte.",
+  "TRANS-001":
+    "Verificar con el transitario o transportista que el destino del envío es el correcto. Un destino equivocado puede generar retenciones, reenvíos y costes adicionales.",
 
   // Campos obligatorios
   "GEN-070":
     "Añadir el campo obligatorio al documento antes del despacho.",
 };
 
-// ------------------------------------------------------------
+/** TRANS-001: El puerto/aeropuerto de descarga coincide con el país del consignatario. Detecta errores donde el destino logístico no coincide con el país o ciudad del consignatario de la operación. */
+function reglaTRANS_001(
+  factura: FacturaComercial,
+  packing: PackingList,
+  transporte: DocumentoTransporte
+): Validacion {
+  const ciudadConsignatario =
+    factura.consignatario.ciudad.valor ||
+    packing.consignatario.ciudad.valor ||
+    factura.comprador.ciudad.valor ||
+    packing.destinatario.ciudad.valor;
+
+  const ciudadDescarga = transporte.ciudad_descarga.valor;
+
+  if (!ciudadConsignatario || !ciudadDescarga) {
+    return crearValidacion(
+      "TRANS-001",
+      "La ciudad de destino del documento de transporte coincide con la ciudad del consignatario",
+      "no_comprobable",
+      "alta",
+      ["documento_transporte"],
+      ["ciudad_descarga", "consignatario.ciudad"],
+      {
+        ciudad_consignatario: ciudadConsignatario,
+        ciudad_descarga: ciudadDescarga,
+      },
+      "No se puede comprobar porque falta la ciudad del consignatario o la ciudad de descarga."
+    );
+  }
+
+  const coincide = textosEquivalentes(ciudadConsignatario, ciudadDescarga);
+
+  return crearValidacion(
+    "TRANS-001",
+    "La ciudad de destino del documento de transporte coincide con la ciudad del consignatario",
+    coincide ? "ok" : "discrepancia",
+    "alta",
+    ["factura_comercial", "documento_transporte"],
+    ["ciudad_descarga", "consignatario.ciudad"],
+    {
+      ciudad_consignatario: ciudadConsignatario,
+      ciudad_descarga: ciudadDescarga,
+    },
+    coincide
+      ? ""
+      : `El consignatario está en "${ciudadConsignatario}", pero el destino del envío es "${ciudadDescarga}". Verificar que el envío va a la ciudad correcta.`
+  );
+}
+
 // Orquestador
-// ------------------------------------------------------------
 
 export function ejecutarReglas(
   factura: FacturaComercial,
@@ -1844,6 +1893,7 @@ export function ejecutarReglas(
     validaciones.push(reglaPL_BL_001(packing, transporte));
     validaciones.push(reglaPL_BL_002(packing, transporte));
     validaciones.push(reglaPL_BL_003(packing, transporte));
+    validaciones.push(reglaTRANS_001(factura, packing, transporte));
   }
 
   const advertencias = reglaGEN_071(factura, packing);

@@ -107,6 +107,7 @@ INSTRUCCIONES ESPECÍFICAS PARA FACTURA:
 - "codigo_hs" debe aparecer impreso en la factura. Si no aparece, no_localizado.
 - "pais_origen" es el país de fabricación/origen de la mercancía, NO el país
   del vendedor ni de la dirección de envío.
+- "ciudad": extrae SOLO el nombre de la ciudad de cada parte (ej: "Shanghai", "Barcelona"). NO incluyas país, provincia ni código postal.
 
 ESTRUCTURA DEL JSON DE SALIDA:
 
@@ -162,6 +163,7 @@ FORMAS DE CADA TIPO DE CAMPO:
 <Parte> = {
   "nombre_legal": <CampoTexto>,
   "direccion_completa": <CampoTexto>,
+  "ciudad": <CampoTexto>,
   "pais": <CampoTexto>
 }
 
@@ -239,6 +241,7 @@ INSTRUCCIONES ESPECÍFICAS PARA PACKING LIST:
     "numero_factura_referencia" y anótalo en "nota".
   · Si hay dos números posibles en la cabecera y no queda claro cuál es la
     factura, deja "no_localizado" y explica en "nota".
+- "ciudad": extrae SOLO el nombre de la ciudad de cada parte (ej: "Shanghai", "Barcelona"). NO incluyas país, provincia ni código postal.
 
 ESTRUCTURA DEL JSON DE SALIDA:
 
@@ -280,6 +283,7 @@ FORMAS DE CADA TIPO DE CAMPO:
 <Parte> = {
   "nombre_legal": <CampoTexto>,
   "direccion_completa": <CampoTexto>,
+  "ciudad": <CampoTexto>,
   "pais": <CampoTexto>
 }
 

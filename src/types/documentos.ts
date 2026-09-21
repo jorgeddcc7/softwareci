@@ -100,6 +100,7 @@ export interface CampoMagnitud extends MetadatosCampo {
 export interface Parte {
   nombre_legal: CampoTexto;
   direccion_completa: CampoTexto;
+  ciudad: CampoTexto;
   pais: CampoTexto;
 }
 
@@ -288,6 +289,8 @@ export interface DocumentoTransporte {
   puerto_carga: CampoTexto;         // Puerto o aeropuerto de salida
   puerto_descarga: CampoTexto;      // Puerto o aeropuerto de llegada
   lugar_entrega: CampoTexto;        // Place of delivery (si aparece)
+  ciudad_carga: CampoTexto;
+  ciudad_descarga: CampoTexto;
 
   // Medio de transporte - marítimo (solo B/L)
   nombre_buque: CampoTexto;

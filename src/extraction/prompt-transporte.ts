@@ -51,6 +51,8 @@ ESTRUCTURA DEL JSON DE SALIDA:
   "notify_party": <Parte>,
   "puerto_carga": <CampoTexto>,
   "puerto_descarga": <CampoTexto>,
+  "ciudad_carga": <CampoTexto>,
+  "ciudad_descarga": <CampoTexto>,
   "lugar_entrega": <CampoTexto>,
   "nombre_buque": <CampoTexto>,
   "numero_viaje": <CampoTexto>,
@@ -87,6 +89,7 @@ FORMAS DE CADA TIPO DE CAMPO:
 <Parte> = {
   "nombre_legal": <CampoTexto>,
   "direccion_completa": <CampoTexto>,
+  "ciudad": <CampoTexto>,
   "pais": <CampoTexto>
 }
 
@@ -163,6 +166,10 @@ INSTRUCCIONES ESPECÍFICAS:
   · En B/L: busca "Port of Loading" y "Port of Discharge".
   · En AWB: busca "Airport of Departure" y "Airport of Destination".
   Extrae el nombre completo tal cual aparece (ej: "PVG - Shanghai Pudong", "Shanghai, China").
+- "ciudad_carga" y "ciudad_descarga": extrae SOLO el nombre de la ciudad del puerto/aeropuerto de carga y descarga (ej: "Shanghai", "Barcelona", "Madrid"). Si el nombre del puerto incluye el país, sepáralo: la ciudad va aquí, no en "puerto_carga".
+- Ejemplo: si ves "Barcelona, Spain" en el puerto de descarga:
+  · "puerto_descarga": "Barcelona, Spain"
+  · "ciudad_descarga": "Barcelona"
 
 ${ESTRUCTURA_JSON}
 
