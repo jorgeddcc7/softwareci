@@ -28,6 +28,7 @@ interface ResultadoAnalisis {
     referencia_factura: string | null;
   };
   transporte: {
+    tipo: "bill_of_lading" | "air_waybill";
     numero: string | null;
     puerto_carga: string | null;
     puerto_descarga: string | null;
@@ -41,6 +42,9 @@ export default function AnalizarPage() {
   const [factura, setFactura] = useState<File | null>(null);
   const [packing, setPacking] = useState<File | null>(null);
   const [transporte, setTransporte] = useState<File | null>(null);
+  const [tipoTransporte, setTipoTransporte] = useState<
+    "auto" | "bill_of_lading" | "air_waybill"
+  >("auto");
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +65,7 @@ export default function AnalizarPage() {
       formData.append("packing", packing);
       if (transporte) {
         formData.append("transporte", transporte);
+        formData.append("tipo_transporte", tipoTransporte);
       }
 
       const respuesta = await fetch("/api/analizar", {
@@ -132,12 +137,41 @@ export default function AnalizarPage() {
           />
           <ZonaSubida
             etiqueta="Documento de transporte"
-            subtitulo="Opcional (B/L, AWB, CMR)"
+            subtitulo="Opcional (B/L o AWB)"
             requerido={false}
             archivo={transporte}
             onArchivo={setTransporte}
           />
         </div>
+
+        {/* Selector de tipo de transporte (solo si hay archivo) */}
+        {transporte && (
+          <div className="mb-6 p-4 bg-surface border border-border rounded-lg">
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Tipo de documento de transporte
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <TipoOpcion
+                valor="auto"
+                etiqueta="Detectar automáticamente"
+                seleccionado={tipoTransporte === "auto"}
+                onSeleccionar={setTipoTransporte}
+              />
+              <TipoOpcion
+                valor="bill_of_lading"
+                etiqueta="Bill of Lading (marítimo)"
+                seleccionado={tipoTransporte === "bill_of_lading"}
+                onSeleccionar={setTipoTransporte}
+              />
+              <TipoOpcion
+                valor="air_waybill"
+                etiqueta="Air Waybill (aéreo)"
+                seleccionado={tipoTransporte === "air_waybill"}
+                onSeleccionar={setTipoTransporte}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Botón */}
         <button
@@ -273,7 +307,8 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
           {resultado.transporte && (
             <>
               {" "}
-              · Transporte:{" "}
+              ·{" "}
+              {resultado.transporte.tipo === "air_waybill" ? "AWB" : "B/L"}:{" "}
               <strong>{resultado.transporte.numero ?? "—"}</strong>
             </>
           )}
@@ -387,5 +422,31 @@ function BloqueValidaciones({
         ))}
       </div>
     </div>
+  );
+}
+
+function TipoOpcion({
+  valor,
+  etiqueta,
+  seleccionado,
+  onSeleccionar,
+}: {
+  valor: "auto" | "bill_of_lading" | "air_waybill";
+  etiqueta: string;
+  seleccionado: boolean;
+  onSeleccionar: (v: "auto" | "bill_of_lading" | "air_waybill") => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSeleccionar(valor)}
+      className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+        seleccionado
+          ? "bg-primary text-white border-primary"
+          : "bg-white text-foreground border-border hover:border-primary"
+      }`}
+    >
+      {etiqueta}
+    </button>
   );
 }

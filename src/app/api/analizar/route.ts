@@ -85,10 +85,18 @@ export async function POST(request: NextRequest) {
       return JSON.parse(limpiarJson(resp)) as PackingList;
     })();
 
+    // Leer el tipo de transporte elegido por el usuario
+    const tipoTransporteRaw = formData.get("tipo_transporte") as string | null;
+    const tipoTransporte: "auto" | "bill_of_lading" | "air_waybill" =
+      tipoTransporteRaw === "bill_of_lading" ||
+      tipoTransporteRaw === "air_waybill"
+        ? tipoTransporteRaw
+        : "auto";
+
     const extraerTransportePromise = rutaTransporte
       ? (async () => {
           const uri = await subirPdf(rutaTransporte);
-          const resp = await analizarPdf(uri, promptTransporte());
+          const resp = await analizarPdf(uri, promptTransporte(tipoTransporte));
           return JSON.parse(limpiarJson(resp)) as DocumentoTransporte;
         })()
       : Promise.resolve(null);
@@ -147,6 +155,7 @@ export async function POST(request: NextRequest) {
       },
       transporte: transporte
         ? {
+            tipo: transporte.tipo_documento,
             numero: transporte.numero_documento.valor,
             puerto_carga: transporte.puerto_carga.valor,
             puerto_descarga: transporte.puerto_descarga.valor,

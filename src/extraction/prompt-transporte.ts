@@ -1,5 +1,13 @@
 // ============================================================
-// Prompt para extracción de Bill of Lading (B/L marítimo)
+// Prompt para extracción de documentos de transporte
+// ============================================================
+//
+// Soporta:
+// - B/L marítimo (bill_of_lading).
+// - AWB aéreo (air_waybill).
+//
+// El usuario puede especificar el tipo esperado o dejar que el
+// modelo lo detecte automáticamente.
 // ============================================================
 
 const REGLAS_COMUNES_TRANSPORTE = `
@@ -17,40 +25,22 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
 
 6. Si hay contradicción: valor = null, confianza = "baja", estado = "ambiguo", nota = describe.
 
-7. Las fechas en formato YYYY-MM-DD solo si son inequívocas. Si no, null con nota.
+7. Si un campo NO APLICA al tipo de documento (ej: nombre_buque en un AWB), usa valor = null, confianza = "alta", estado = "no_aplicable".
 
-8. Los pesos conservan valor y unidad originales. Si conviertes a kg, guarda el valor normalizado por separado.
+8. Las fechas en formato YYYY-MM-DD solo si son inequívocas. Si no, null con nota.
 
-9. Los números de contenedor se extraen tal cual aparecen.
+9. Los pesos conservan valor y unidad originales. Si conviertes a kg, guarda el valor normalizado por separado.
 
-10. NO inventes códigos UN/LOCODE. Solo extrae lo que aparezca impreso.
+10. NO inventes códigos UN/LOCODE ni IATA. Solo extrae lo que aparezca impreso.
+
+11. El "numero_factura_referencia" puede aparecer como campo explícito ("Invoice No", "Ref") o dentro de la descripción de la mercancía (ej: "as per commercial invoice STC2025-0847"). En ese caso, extráelo igualmente y anótalo en "nota".
 `;
 
-export function promptTransporte(): string {
-  return `Eres un asistente experto en comercio internacional y documentación de transporte marítimo.
-
-Vas a recibir un PDF que es un BILL OF LADING (B/L) marítimo.
-
-${REGLAS_COMUNES_TRANSPORTE}
-
-INSTRUCCIONES ESPECÍFICAS PARA B/L:
-
-- Si el B/L es "Master" y "House", extrae SOLO el número principal que aparezca destacado. Si hay duda, deja "ambiguo".
-- "tipo_bl" puede ser "original", "telex release", "seawaybill", "copia". Si no queda claro, null.
-- "flete_pagado_en" puede ser "origen" (prepaid) o "destino" (collect).
-- Los contenedores suelen aparecer en una sección tipo "Container No. / Seal No. / Type / Packages / Gross Weight".
-- Si el B/L NO lista contenedores individuales, deja "contenedores": [].
-- "notify_party" puede ser la misma empresa que el consignatario, o distinta. Extrae lo que aparezca.
-- El "numero_factura_referencia" puede aparecer:
-  · Como campo explícito "Invoice No" o "Ref".
-  · DENTRO de la descripción de la carga (ej: "as per commercial invoice STC2025-0847").
-  En ese caso, extráelo igualmente y anótalo en "nota".
-- "lugar_entrega" puede aparecer como "Place of Delivery" o "Final Destination".
-
+const ESTRUCTURA_JSON = `
 ESTRUCTURA DEL JSON DE SALIDA:
 
 {
-  "tipo_documento": "bill_of_lading",
+  "tipo_documento": "bill_of_lading" | "air_waybill",
   "numero_documento": <CampoTexto>,
   "tipo_bl": <CampoTexto>,
   "fecha_emision": <CampoTexto>,
@@ -64,6 +54,10 @@ ESTRUCTURA DEL JSON DE SALIDA:
   "lugar_entrega": <CampoTexto>,
   "nombre_buque": <CampoTexto>,
   "numero_viaje": <CampoTexto>,
+  "aerolinea": <CampoTexto>,
+  "numero_vuelo": <CampoTexto>,
+  "fecha_vuelo": <CampoTexto>,
+  "peso_cobrable": <CampoMagnitud>,
   "numero_factura_referencia": <CampoTexto>,
   "numero_pedido_referencia": <CampoTexto>,
   "numero_reserva": <CampoTexto>,
@@ -123,6 +117,54 @@ FORMAS DE CADA TIPO DE CAMPO:
   "nota": <string>,
   "estado": "extraido" | "no_localizado" | "ilegible" | "ambiguo" | "no_aplicable"
 }
+`;
+
+/**
+ * Prompt para extraer los campos de un documento de transporte.
+ *
+ * @param tipoEsperado - Si es "auto", el modelo decide el tipo. Si es un tipo concreto, lo usa.
+ */
+export function promptTransporte(
+  tipoEsperado: "auto" | "bill_of_lading" | "air_waybill" = "auto"
+): string {
+  let instruccionTipo = "";
+
+  if (tipoEsperado === "bill_of_lading") {
+    instruccionTipo = `El documento que vas a analizar es un BILL OF LADING (B/L) marítimo.
+Devuelve "tipo_documento": "bill_of_lading".
+Los campos "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" no aplican a un B/L: márcalos como "no_aplicable".
+Los campos "nombre_buque" y "numero_viaje" sí aplican.`;
+  } else if (tipoEsperado === "air_waybill") {
+    instruccionTipo = `El documento que vas a analizar es un AIR WAYBILL (AWB) aéreo.
+Devuelve "tipo_documento": "air_waybill".
+Los campos "nombre_buque", "numero_viaje" y "contenedores" no aplican a un AWB: márcalos como "no_aplicable".
+Los campos "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" sí aplican.`;
+  } else {
+    instruccionTipo = `Debes DETECTAR el tipo de documento de transporte:
+- Si es un BILL OF LADING marítimo, devuelve "tipo_documento": "bill_of_lading".
+- Si es un AIR WAYBILL aéreo, devuelve "tipo_documento": "air_waybill".
+Los campos que no apliquen al tipo detectado se marcan como "no_aplicable".`;
+  }
+
+  return `Eres un asistente experto en comercio internacional y documentación de transporte.
+
+${instruccionTipo}
+
+${REGLAS_COMUNES_TRANSPORTE}
+
+INSTRUCCIONES ESPECÍFICAS:
+
+- "tipo_bl" solo aplica a B/L. Puede ser "original", "telex release", "seawaybill", "copia".
+- "flete_pagado_en" puede ser "origen" (prepaid) o "destino" (collect).
+- Los contenedores solo aplican a B/L. En AWB deja "contenedores": [].
+- "notify_party" puede ser la misma empresa que el consignatario, o distinta.
+- "lugar_entrega" puede aparecer como "Place of Delivery" o "Final Destination".
+- Para "puerto_carga" y "puerto_descarga":
+  · En B/L: busca "Port of Loading" y "Port of Discharge".
+  · En AWB: busca "Airport of Departure" y "Airport of Destination".
+  Extrae el nombre completo tal cual aparece (ej: "PVG - Shanghai Pudong", "Shanghai, China").
+
+${ESTRUCTURA_JSON}
 
 Devuelve SOLO el JSON. Nada más.`;
 }

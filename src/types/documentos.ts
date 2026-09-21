@@ -263,31 +263,41 @@ export interface CargaBL {
 }
 
 /**
- * Estructura completa de un Bill of Lading marítimo.
+ * Tipos de documento de transporte soportados.
+ * - bill_of_lading: B/L marítimo.
+ * - air_waybill: AWB aéreo.
+ * En v2 se añadirán: cmr (carretera), rail (ferroviario).
  */
+export type TipoTransporte = "bill_of_lading" | "air_waybill";
 export interface DocumentoTransporte {
-  tipo_documento: "bill_of_lading";
+  tipo_documento: TipoTransporte;
 
   // Identificación
   numero_documento: CampoTexto;
-  tipo_bl: CampoTexto;
+  tipo_bl: CampoTexto;              // "original" / "telex release" / etc. (solo B/L)
   fecha_emision: CampoTexto;
   fecha_carga: CampoTexto;
 
   // Partes
-  transportista: Parte;
-  expedidor: Parte;
-  consignatario: Parte;
-  notify_party: Parte;
+  transportista: Parte;             // Carrier / naviera o aerolínea
+  expedidor: Parte;                 // Shipper / exporter
+  consignatario: Parte;             // Consignee
+  notify_party: Parte;              // Notify party (si aparece)
 
   // Lugares logísticos
-  puerto_carga: CampoTexto;
-  puerto_descarga: CampoTexto;
-  lugar_entrega: CampoTexto;
+  puerto_carga: CampoTexto;         // Puerto o aeropuerto de salida
+  puerto_descarga: CampoTexto;      // Puerto o aeropuerto de llegada
+  lugar_entrega: CampoTexto;        // Place of delivery (si aparece)
 
-  // Medio de transporte
+  // Medio de transporte - marítimo (solo B/L)
   nombre_buque: CampoTexto;
   numero_viaje: CampoTexto;
+
+  // Medio de transporte - aéreo (solo AWB)
+  aerolinea: CampoTexto;
+  numero_vuelo: CampoTexto;
+  fecha_vuelo: CampoTexto;
+  peso_cobrable: CampoMagnitud;
 
   // Referencias
   numero_factura_referencia: CampoTexto;
@@ -296,12 +306,11 @@ export interface DocumentoTransporte {
 
   // Carga
   carga: CargaBL;
-  contenedores: Contenedor[];
+  contenedores: Contenedor[];       // Solo aplica a B/L. En AWB va vacío.
 
   // Flete
   flete_pagado_en: CampoTexto;
 }
-
 // ------------------------------------------------------------
 // Tipo unión
 // ------------------------------------------------------------

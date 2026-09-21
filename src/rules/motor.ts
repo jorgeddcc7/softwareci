@@ -1317,15 +1317,15 @@ export function generarValidacionesINV_021(
 }
 
 // ------------------------------------------------------------
-// Reglas que involucran el documento de transporte (B/L)
+// Reglas que involucran el documento de transporte (documento de transporte)
 // ------------------------------------------------------------
 //
-// Solo se ejecutan si el usuario ha subido un B/L.
-// Comparan factura ↔ B/L y packing ↔ B/L.
+// Solo se ejecutan si el usuario ha subido un documento de transporte.
+// Comparan factura ↔ documento de transporte y packing ↔ documento de transporte.
 // ------------------------------------------------------------
 
 /**
- * INV-BL-001: El número de factura referenciado en el B/L coincide con la factura.
+ * INV-BL-001: El número de factura referenciado en el documento de transporte coincide con la factura.
  */
 function reglaINV_BL_001(
   factura: FacturaComercial,
@@ -1337,7 +1337,7 @@ function reglaINV_BL_001(
   if (!numeroFactura || !referenciaBL) {
     return crearValidacion(
       "INV-BL-001",
-      "Número de factura: factura vs B/L",
+      "Número de factura: factura vs documento de transporte",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1351,7 +1351,7 @@ function reglaINV_BL_001(
 
   return crearValidacion(
     "INV-BL-001",
-    "El número de factura referenciado en el B/L coincide con la factura",
+    "Número de factura: factura vs documento de transporte",
     coincide ? "ok" : "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
@@ -1359,12 +1359,12 @@ function reglaINV_BL_001(
     { factura: numeroFactura, bl: referenciaBL },
     coincide
       ? ""
-      : `La factura indica "${numeroFactura}" pero el B/L referencia "${referenciaBL}".`
+      : `La factura indica "${numeroFactura}" pero el documento de transporte referencia "${referenciaBL}".`
   );
 }
 
 /**
- * INV-BL-002: El expedidor del B/L coincide con el vendedor de la factura.
+ * INV-BL-002: El expedidor del documento de transporte coincide con el vendedor de la factura.
  */
 function reglaINV_BL_002(
   factura: FacturaComercial,
@@ -1376,7 +1376,7 @@ function reglaINV_BL_002(
   if (!vendedor || !expedidor) {
     return crearValidacion(
       "INV-BL-002",
-      "Vendedor / Expedidor: factura vs B/L",
+      "Vendedor / Expedidor: factura vs documento de transporte",
       "no_comprobable",
       "media",
       ["factura_comercial", "documento_transporte"],
@@ -1390,7 +1390,7 @@ function reglaINV_BL_002(
 
   return crearValidacion(
     "INV-BL-002",
-    "El expedidor del B/L coincide con el vendedor de la factura",
+    "Vendedor / Expedidor: factura vs documento de transporte",
     coincide ? "ok" : "discrepancia",
     "media",
     ["factura_comercial", "documento_transporte"],
@@ -1398,12 +1398,12 @@ function reglaINV_BL_002(
     { factura: vendedor, bl: expedidor },
     coincide
       ? ""
-      : `La factura identifica al vendedor como "${vendedor}", el B/L identifica al expedidor como "${expedidor}".`
+      : `La factura identifica al vendedor como "${vendedor}", el documento de transporte identifica al expedidor como "${expedidor}".`
   );
 }
 
 /**
- * INV-BL-003: El consignatario del B/L coincide con el consignatario de la factura.
+ * INV-BL-003: El consignatario del documento de transporte coincide con el consignatario de la factura.
  */
 function reglaINV_BL_003(
   factura: FacturaComercial,
@@ -1415,7 +1415,7 @@ function reglaINV_BL_003(
   if (!consignatarioFactura || !consignatarioBL) {
     return crearValidacion(
       "INV-BL-003",
-      "Consignatario: factura vs B/L",
+      "Consignatario: factura vs documento de transporte",
       "no_comprobable",
       "media",
       ["factura_comercial", "documento_transporte"],
@@ -1429,7 +1429,7 @@ function reglaINV_BL_003(
 
   return crearValidacion(
     "INV-BL-003",
-    "El consignatario del B/L coincide con el consignatario de la factura",
+    "Consignatario: factura vs documento de transporte",
     coincide ? "ok" : "discrepancia",
     "media",
     ["factura_comercial", "documento_transporte"],
@@ -1437,12 +1437,12 @@ function reglaINV_BL_003(
     { factura: consignatarioFactura, bl: consignatarioBL },
     coincide
       ? ""
-      : `La factura identifica al consignatario como "${consignatarioFactura}", el B/L como "${consignatarioBL}".`
+      : `La factura identifica al consignatario como "${consignatarioFactura}", el documento de transporte como "${consignatarioBL}".`
   );
 }
 
 /**
- * INV-BL-010: El número de bultos coincide entre factura y B/L.
+ * INV-BL-010: El número de bultos coincide entre factura y documento de transporte.
  */
 function reglaINV_BL_010(
   factura: FacturaComercial,
@@ -1454,7 +1454,7 @@ function reglaINV_BL_010(
   if (bultosFactura === null || bultosBL === null) {
     return crearValidacion(
       "INV-BL-010",
-      "Número de bultos: factura vs B/L",
+      "Número de bultos: factura vs documento de transporte",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1467,7 +1467,7 @@ function reglaINV_BL_010(
   if (bultosFactura === bultosBL) {
     return crearValidacion(
       "INV-BL-010",
-      "El número de bultos coincide entre factura y B/L",
+      "El número de bultos coincide entre factura y documento de transporte",
       "ok",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1480,18 +1480,18 @@ function reglaINV_BL_010(
   const diferencia = Math.abs(bultosFactura - bultosBL);
   return crearValidacion(
     "INV-BL-010",
-    "Número de bultos: factura vs B/L",
+    "Número de bultos: factura vs documento de transporte",
     "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
     ["totales_fisicos.numero_bultos", "carga.numero_bultos"],
     { factura: bultosFactura, bl: bultosBL },
-    `La factura indica ${bultosFactura} bultos, el B/L indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
+    `La factura indica ${bultosFactura} bultos, el documento de transporte indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
   );
 }
 
 /**
- * INV-BL-011: El peso bruto coincide entre factura y B/L.
+ * INV-BL-011: El peso bruto coincide entre factura y documento de transporte.
  */
 function reglaINV_BL_011(
   factura: FacturaComercial,
@@ -1503,7 +1503,7 @@ function reglaINV_BL_011(
   if (brutoFactura === null || brutoBL === null) {
     return crearValidacion(
       "INV-BL-011",
-      "Peso bruto: factura vs B/L",
+      "Peso bruto: factura vs documento de transporte",
       "no_comprobable",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1516,7 +1516,7 @@ function reglaINV_BL_011(
   if (numerosDentroDeToleranciaPorcentual(brutoFactura, brutoBL, TOLERANCIA_PESO_PORCENTAJE)) {
     return crearValidacion(
       "INV-BL-011",
-      "El peso bruto coincide entre factura y B/L",
+      "El peso bruto coincide entre factura y documento de transporte",
       "ok",
       "alta",
       ["factura_comercial", "documento_transporte"],
@@ -1530,42 +1530,42 @@ function reglaINV_BL_011(
   const porcentaje = ((diferencia / Math.max(brutoFactura, brutoBL)) * 100).toFixed(2);
   return crearValidacion(
     "INV-BL-011",
-    "Peso bruto: factura vs B/L",
+    "Peso bruto: factura vs documento de transporte",
     "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
     ["totales_fisicos.peso_bruto", "carga.peso_bruto"],
     { factura: brutoFactura, bl: brutoBL },
-    `La factura indica ${formatearNumero(brutoFactura)} kg brutos, el B/L indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+    `La factura indica ${formatearNumero(brutoFactura)} kg brutos, el documento de transporte indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
   );
 }
 
 /**
- * INV-BL-012: El Incoterm del B/L coincide con el de la factura.
+ * INV-BL-012: El Incoterm del documento de transporte coincide con el de la factura.
  */
 function reglaINV_BL_012(
   factura: FacturaComercial,
   _transporte: DocumentoTransporte
 ): Validacion {
-  // En v1 el B/L extrae el Incoterm dentro de "flete_pagado_en" o en remarks,
+  // En v1 el documento de transporte extrae el Incoterm dentro de "flete_pagado_en" o en remarks,
   // pero no tenemos un campo explícito. Esta regla se queda como no_comprobable
-  // hasta que ampliemos el schema del B/L con Incoterm explícito.
+  // hasta que ampliemos el schema del documento de transporte con Incoterm explícito.
   const incotermFactura = factura.incoterm.codigo.valor;
 
   return crearValidacion(
     "INV-BL-012",
-    "Incoterm: factura vs B/L",
+    "Incoterm: factura vs documento de transporte",
     "no_comprobable",
     "media",
     ["factura_comercial", "documento_transporte"],
     ["incoterm.codigo"],
     { factura: incotermFactura },
-    "El B/L en v1 no extrae Incoterm en campo explícito. Se puede comparar cuando ampliemos el schema."
+    "El documento de transporte en v1 no extrae Incoterm en campo explícito. Se puede comparar cuando ampliemos el schema."
   );
 }
 
 /**
- * PL-BL-001: El número de bultos coincide entre packing list y B/L.
+ * PL-BL-001: El número de bultos coincide entre packing list y documento de transporte.
  */
 function reglaPL_BL_001(
   packing: PackingList,
@@ -1577,7 +1577,7 @@ function reglaPL_BL_001(
   if (bultosPacking === null || bultosBL === null) {
     return crearValidacion(
       "PL-BL-001",
-      "Número de bultos: packing vs B/L",
+      "Número de bultos: packing vs documento de transporte",
       "no_comprobable",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1590,7 +1590,7 @@ function reglaPL_BL_001(
   if (bultosPacking === bultosBL) {
     return crearValidacion(
       "PL-BL-001",
-      "El número de bultos coincide entre packing list y B/L",
+      "El número de bultos coincide entre packing list y documento de transporte",
       "ok",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1603,18 +1603,18 @@ function reglaPL_BL_001(
   const diferencia = Math.abs(bultosPacking - bultosBL);
   return crearValidacion(
     "PL-BL-001",
-    "Número de bultos: packing vs B/L",
+    "Número de bultos: packing vs documento de transporte",
     "discrepancia",
     "alta",
     ["packing_list", "documento_transporte"],
     ["totales.numero_bultos", "carga.numero_bultos"],
     { packing: bultosPacking, bl: bultosBL },
-    `El packing list indica ${bultosPacking} bultos, el B/L indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
+    `El packing list indica ${bultosPacking} bultos, el documento de transporte indica ${bultosBL}. Diferencia de ${diferencia} bulto(s).`
   );
 }
 
 /**
- * PL-BL-002: El peso bruto coincide entre packing list y B/L.
+ * PL-BL-002: El peso bruto coincide entre packing list y documento de transporte.
  */
 function reglaPL_BL_002(
   packing: PackingList,
@@ -1626,7 +1626,7 @@ function reglaPL_BL_002(
   if (brutoPacking === null || brutoBL === null) {
     return crearValidacion(
       "PL-BL-002",
-      "Peso bruto: packing vs B/L",
+      "Peso bruto: packing vs documento de transporte",
       "no_comprobable",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1639,7 +1639,7 @@ function reglaPL_BL_002(
   if (numerosDentroDeToleranciaPorcentual(brutoPacking, brutoBL, TOLERANCIA_PESO_PORCENTAJE)) {
     return crearValidacion(
       "PL-BL-002",
-      "El peso bruto coincide entre packing list y B/L",
+      "El peso bruto coincide entre packing list y documento de transporte",
       "ok",
       "alta",
       ["packing_list", "documento_transporte"],
@@ -1653,18 +1653,18 @@ function reglaPL_BL_002(
   const porcentaje = ((diferencia / Math.max(brutoPacking, brutoBL)) * 100).toFixed(2);
   return crearValidacion(
     "PL-BL-002",
-    "Peso bruto: packing vs B/L",
+    "Peso bruto: packing vs documento de transporte",
     "discrepancia",
     "alta",
     ["packing_list", "documento_transporte"],
     ["totales.peso_bruto", "carga.peso_bruto"],
     { packing: brutoPacking, bl: brutoBL },
-    `El packing list indica ${formatearNumero(brutoPacking)} kg brutos, el B/L indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
+    `El packing list indica ${formatearNumero(brutoPacking)} kg brutos, el documento de transporte indica ${formatearNumero(brutoBL)} kg. Diferencia de ${formatearNumero(diferencia)} kg (${porcentaje}%).`
   );
 }
 
 /**
- * PL-BL-003: El tipo de bultos coincide entre packing list y B/L.
+ * PL-BL-003: El tipo de bultos coincide entre packing list y documento de transporte.
  */
 function reglaPL_BL_003(
   packing: PackingList,
@@ -1676,7 +1676,7 @@ function reglaPL_BL_003(
   if (!tipoPacking || !tipoBL) {
     return crearValidacion(
       "PL-BL-003",
-      "Tipo de bultos: packing vs B/L",
+      "Tipo de bultos: packing vs documento de transporte",
       "no_comprobable",
       "media",
       ["packing_list", "documento_transporte"],
@@ -1695,7 +1695,7 @@ function reglaPL_BL_003(
 
   return crearValidacion(
     "PL-BL-003",
-    "El tipo de bultos coincide entre packing list y B/L",
+    "El tipo de bultos coincide entre packing list y documento de transporte",
     coincide ? "ok" : "discrepancia",
     "media",
     ["packing_list", "documento_transporte"],
@@ -1703,7 +1703,7 @@ function reglaPL_BL_003(
     { packing: tipoPacking, bl: tipoBL },
     coincide
       ? ""
-      : `El packing list indica "${tipoPacking}", el B/L indica "${tipoBL}".`
+      : `El packing list indica "${tipoPacking}", el documento de transporte indica "${tipoBL}".`
   );
 }
 
@@ -1747,7 +1747,7 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
   "INV-PL-040":
     "Verificar con el proveedor el peso neto correcto. Corregir el documento que esté mal.",
   "INV-PL-041":
-    "Verificar con el proveedor y el transportista el peso bruto correcto. Suele coincidir con el declarado en el B/L.",
+    "Verificar con el proveedor y el transportista el peso bruto correcto. Suele coincidir con el declarado en el documento de transporte.",
   "INV-PL-042":
     "Corregir el documento: el peso bruto nunca puede ser menor que el peso neto.",
 
@@ -1769,27 +1769,27 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
   "INV-021":
     "Mejorar la descripción siguiendo la sugerencia del análisis. Detallar qué es, para qué sirve y características técnicas.",
 
-  // Factura vs B/L
+  // Factura vs documento de transporte
   "INV-BL-001":
-    "Verificar que el B/L referencia la factura correcta. Si no, contactar al transitario.",
+    "Verificar que el documento de transporte referencia la factura correcta. Si no, contactar al transitario.",
   "INV-BL-002":
-    "Comprobar que el expedidor del B/L coincide con el vendedor de la factura.",
+    "Comprobar que el expedidor del documento de transporte coincide con el vendedor de la factura.",
   "INV-BL-003":
-    "Comprobar que el consignatario del B/L coincide con el de la factura.",
+    "Comprobar que el consignatario del documento de transporte coincide con el de la factura.",
   "INV-BL-010":
-    "Verificar con el transportista el número de bultos declarado en el B/L.",
+    "Verificar con el transportista el número de bultos declarado en el documento de transporte.",
   "INV-BL-011":
-    "Verificar con el transportista el peso bruto declarado en el B/L.",
+    "Verificar con el transportista el peso bruto declarado en el documento de transporte.",
   "INV-BL-012":
-    "Verificar el Incoterm declarado en el B/L y comprobar que coincide con el de la factura.",
+    "Verificar el Incoterm declarado en el documento de transporte y comprobar que coincide con el de la factura.",
 
-  // Packing vs B/L
+  // Packing vs documento de transporte
   "PL-BL-001":
-    "El packing list y el B/L deben coincidir en el número de bultos. Verificar con el proveedor y el transportista.",
+    "El packing list y el documento de transporte deben coincidir en el número de bultos. Verificar con el proveedor y el transportista.",
   "PL-BL-002":
-    "El packing list y el B/L deben coincidir en el peso bruto. Verificar con el proveedor y el transportista.",
+    "El packing list y el documento de transporte deben coincidir en el peso bruto. Verificar con el proveedor y el transportista.",
   "PL-BL-003":
-    "Unificar el tipo de bultos declarado entre packing list y B/L.",
+    "Unificar el tipo de bultos declarado entre packing list y documento de transporte.",
 
   // Campos obligatorios
   "GEN-070":
