@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface Validacion {
   regla: string;
@@ -84,84 +85,87 @@ export default function AnalizarPage() {
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "3rem 2rem" }}>
-      <h1 style={{ fontSize: "1.8rem", marginBottom: "0.5rem" }}>
-        Analizar documentos
-      </h1>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Sube la factura comercial, el packing list y (opcionalmente) el
-        documento de transporte. El sistema los comparará y detectará
-        incoherencias.
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "1rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <ZonaSubida
-          etiqueta="Factura comercial"
-          requerido={true}
-          archivo={factura}
-          onArchivo={setFactura}
-        />
-        <ZonaSubida
-          etiqueta="Packing list"
-          requerido={true}
-          archivo={packing}
-          onArchivo={setPacking}
-        />
-        <ZonaSubida
-          etiqueta="Documento de transporte"
-          subtitulo="Opcional (B/L, AWB, CMR)"
-          requerido={false}
-          archivo={transporte}
-          onArchivo={setTransporte}
-        />
-      </div>
-
-      <button
-        onClick={handleAnalizar}
-        disabled={analizando || !factura || !packing}
-        style={{
-          padding: "0.75rem 2rem",
-          fontSize: "1rem",
-          background: analizando ? "#999" : "#0066cc",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          cursor: analizando ? "not-allowed" : "pointer",
-        }}
-      >
-        {analizando ? "Analizando..." : "Analizar documentos"}
-      </button>
-
-      {analizando && (
-        <p style={{ marginTop: "1rem", color: "#666" }}>
-          Procesando con IA. Esto puede tardar 30-90 segundos.
-        </p>
-      )}
-
-      {error && (
-        <div
-          style={{
-            marginTop: "1.5rem",
-            padding: "1rem",
-            background: "#ffe5e5",
-            border: "1px solid #ffb3b3",
-            borderRadius: 8,
-            color: "#b30000",
-          }}
-        >
-          {error}
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border bg-surface">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">CD</span>
+            </div>
+            <span className="font-semibold text-foreground text-[15px]">
+              Controlador de Documentos
+            </span>
+          </Link>
+          <Link
+            href="/"
+            className="text-sm text-muted hover:text-foreground transition-colors"
+          >
+            ← Volver
+          </Link>
         </div>
-      )}
+      </header>
 
-      {resultado && <MostrarResultado resultado={resultado} />}
-    </main>
+      <main className="max-w-5xl mx-auto px-6 py-12 w-full">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Analizar documentos
+        </h1>
+        <p className="text-muted mb-8">
+          Sube la factura comercial, el packing list y, opcionalmente, el
+          documento de transporte.
+        </p>
+
+        {/* Zonas de subida */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <ZonaSubida
+            etiqueta="Factura comercial"
+            requerido={true}
+            archivo={factura}
+            onArchivo={setFactura}
+          />
+          <ZonaSubida
+            etiqueta="Packing list"
+            requerido={true}
+            archivo={packing}
+            onArchivo={setPacking}
+          />
+          <ZonaSubida
+            etiqueta="Documento de transporte"
+            subtitulo="Opcional (B/L, AWB, CMR)"
+            requerido={false}
+            archivo={transporte}
+            onArchivo={setTransporte}
+          />
+        </div>
+
+        {/* Botón */}
+        <button
+          onClick={handleAnalizar}
+          disabled={analizando || !factura || !packing}
+          className={`px-6 py-3 font-medium rounded-lg transition-colors ${
+            analizando || !factura || !packing
+              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+              : "bg-primary text-white hover:bg-primary-hover shadow-sm"
+          }`}
+        >
+          {analizando ? "Analizando..." : "Analizar documentos"}
+        </button>
+
+        {analizando && (
+          <p className="mt-4 text-sm text-muted">
+            Procesando con IA. Esto puede tardar 30-90 segundos.
+          </p>
+        )}
+
+        {error && (
+          <div className="mt-6 p-4 bg-high-bg border border-red-200 rounded-lg text-high-text text-sm">
+            {error}
+          </div>
+        )}
+
+        {resultado && <MostrarResultado resultado={resultado} />}
+      </main>
+    </div>
   );
 }
 
@@ -179,39 +183,31 @@ function ZonaSubida({
   onArchivo: (f: File | null) => void;
 }) {
   return (
-    <div
-      style={{
-        border: "2px dashed #ccc",
-        borderRadius: 8,
-        padding: "1.5rem",
-        textAlign: "center",
-        background: archivo ? "#f0f8ff" : "#fafafa",
-      }}
+    <label
+      className={`block border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
+        archivo
+          ? "border-primary bg-primary-light"
+          : "border-border bg-surface hover:border-primary"
+      }`}
     >
-      <p style={{ fontWeight: 600, marginBottom: "0.25rem" }}>{etiqueta}</p>
-      {subtitulo && (
-        <p style={{ fontSize: "0.8rem", color: "#888", marginBottom: "0.5rem" }}>
-          {subtitulo}
-        </p>
-      )}
-      {!subtitulo && <div style={{ height: "1.25rem" }} />}
+      <p className="font-semibold text-foreground text-sm mb-1">{etiqueta}</p>
+      <p className="text-xs text-muted mb-3">
+        {subtitulo ?? (requerido ? "Requerido" : "")}
+      </p>
       <input
         type="file"
         accept="application/pdf"
         onChange={(e) => onArchivo(e.target.files?.[0] ?? null)}
-        style={{ fontSize: "0.85rem", maxWidth: "100%" }}
+        className="hidden"
       />
-      {archivo && (
-        <p style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "#0066cc" }}>
+      {archivo ? (
+        <p className="text-xs text-primary font-medium truncate">
           ✓ {archivo.name}
         </p>
+      ) : (
+        <p className="text-xs text-muted">Haz clic o arrastra el PDF</p>
       )}
-      {!archivo && requerido && (
-        <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "#b36b00" }}>
-          Requerido
-        </p>
-      )}
-    </div>
+    </label>
   );
 }
 
@@ -232,10 +228,17 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
 
   const colorGlobal =
     resultado.resultado_global === "no_apto"
-      ? "#b30000"
+      ? "#991B1B"
       : resultado.resultado_global === "revisar"
-        ? "#b36b00"
-        : "#008000";
+        ? "#92400E"
+        : "#065F46";
+
+  const bgGlobal =
+    resultado.resultado_global === "no_apto"
+      ? "#FEE2E2"
+      : resultado.resultado_global === "revisar"
+        ? "#FEF3C7"
+        : "#D1FAE5";
 
   const textoGlobal =
     resultado.resultado_global === "no_apto"
@@ -245,29 +248,31 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
         : "APTO — Sin discrepancias detectadas";
 
   return (
-    <div style={{ marginTop: "2rem" }}>
+    <div className="mt-10">
+      {/* Resumen global */}
       <div
+        className="p-5 rounded-lg mb-6 border-l-4"
         style={{
-          padding: "1rem 1.5rem",
-          background: "#fff",
-          border: "1px solid #ddd",
-          borderLeft: `4px solid ${colorGlobal}`,
-          borderRadius: 8,
-          marginBottom: "1.5rem",
+          background: bgGlobal,
+          borderLeftColor: colorGlobal,
         }}
       >
-        <p style={{ fontSize: "1.1rem", fontWeight: 600, color: colorGlobal }}>
+        <p className="text-base font-semibold" style={{ color: colorGlobal }}>
           {textoGlobal}
         </p>
-        <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "0.5rem" }}>
-          Factura: {resultado.factura.numero ?? "—"} · Packing:{" "}
-          {resultado.packing.numero ?? "—"}
+        <p className="text-sm text-slate-700 mt-2">
+          Factura: <strong>{resultado.factura.numero ?? "—"}</strong> ·
+          Packing: <strong>{resultado.packing.numero ?? "—"}</strong>
           {resultado.transporte && (
-            <> · Transporte: {resultado.transporte.numero ?? "—"}</>
+            <>
+              {" "}
+              · Transporte:{" "}
+              <strong>{resultado.transporte.numero ?? "—"}</strong>
+            </>
           )}
         </p>
         {resultado.transporte && (
-          <p style={{ fontSize: "0.85rem", color: "#888", marginTop: "0.25rem" }}>
+          <p className="text-xs text-slate-600 mt-1">
             Ruta: {resultado.transporte.puerto_carga ?? "—"} →{" "}
             {resultado.transporte.puerto_descarga ?? "—"}
           </p>
@@ -276,75 +281,58 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
 
       {altas.length > 0 && (
         <BloqueValidaciones
-          titulo={`🔴 Discrepancias graves (${altas.length})`}
+          titulo={`Discrepancias graves (${altas.length})`}
+          color="#991B1B"
+          bgColor="#FEE2E2"
           validaciones={altas}
-          color="#b30000"
         />
       )}
 
       {medias.length > 0 && (
         <BloqueValidaciones
-          titulo={`🟡 Discrepancias medias (${medias.length})`}
+          titulo={`Discrepancias medias (${medias.length})`}
+          color="#92400E"
+          bgColor="#FEF3C7"
           validaciones={medias}
-          color="#b36b00"
         />
       )}
 
       {bajas.length > 0 && (
         <BloqueValidaciones
-          titulo={`🟢 Discrepancias leves (${bajas.length})`}
+          titulo={`Discrepancias leves (${bajas.length})`}
+          color="#065F46"
+          bgColor="#D1FAE5"
           validaciones={bajas}
-          color="#007700"
         />
       )}
 
       {noComprobables.length > 0 && (
         <BloqueValidaciones
-          titulo={`⚠️ No comprobables (${noComprobables.length})`}
+          titulo={`No comprobables (${noComprobables.length})`}
+          color="#475569"
+          bgColor="#F1F5F9"
           validaciones={noComprobables}
-          color="#666"
         />
       )}
 
       {resultado.advertencias.length > 0 && (
-        <div
-          style={{
-            padding: "1rem 1.5rem",
-            background: "#fff",
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            marginBottom: "1rem",
-          }}
-        >
-          <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-            📌 Advertencias
+        <div className="p-5 bg-surface border border-border rounded-lg mb-4">
+          <p className="font-semibold text-foreground mb-3 text-sm">
+            Advertencias
           </p>
-          <ul style={{ paddingLeft: "1.25rem", fontSize: "0.9rem" }}>
+          <ul className="list-disc pl-5 text-sm text-muted space-y-1">
             {resultado.advertencias.map((a, i) => (
-              <li key={i} style={{ marginBottom: "0.25rem" }}>
-                {a}
-              </li>
+              <li key={i}>{a}</li>
             ))}
           </ul>
         </div>
       )}
 
-      <div
-        style={{
-          marginTop: "1.5rem",
-          padding: "1rem 1.5rem",
-          background: "#f5f5f7",
-          borderRadius: 8,
-          fontSize: "0.9rem",
-          color: "#555",
-        }}
-      >
-        <p>
-          <strong>Resumen:</strong> {resultado.validaciones.length} reglas
-          ejecutadas · {altas.length + medias.length + bajas.length}{" "}
-          discrepancias · {noComprobables.length} no comprobables ·{" "}
-          {oks.length} correctas
-        </p>
+      <div className="mt-6 p-4 bg-slate-100 rounded-lg text-sm text-slate-600">
+        <strong>Resumen:</strong> {resultado.validaciones.length} reglas
+        ejecutadas · {altas.length + medias.length + bajas.length}{" "}
+        discrepancias · {noComprobables.length} no comprobables ·{" "}
+        {oks.length} correctas
       </div>
     </div>
   );
@@ -352,45 +340,40 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
 
 function BloqueValidaciones({
   titulo,
-  validaciones,
   color,
+  bgColor,
+  validaciones,
 }: {
   titulo: string;
-  validaciones: Validacion[];
   color: string;
+  bgColor: string;
+  validaciones: Validacion[];
 }) {
   return (
-    <div
-      style={{
-        padding: "1rem 1.5rem",
-        background: "#fff",
-        border: "1px solid #ddd",
-        borderRadius: 8,
-        marginBottom: "1rem",
-      }}
-    >
-      <p style={{ fontWeight: 600, marginBottom: "0.75rem", color }}>
+    <div className="mb-4 bg-surface border border-border rounded-lg overflow-hidden">
+      <div
+        className="px-5 py-3 font-semibold text-sm"
+        style={{ background: bgColor, color }}
+      >
         {titulo}
-      </p>
-      {validaciones.map((v, i) => (
-        <div
-          key={i}
-          style={{
-            paddingTop: i > 0 ? "0.75rem" : 0,
-            marginTop: i > 0 ? "0.75rem" : 0,
-            borderTop: i > 0 ? "1px solid #eee" : "none",
-          }}
-        >
-          <p style={{ fontWeight: 500, fontSize: "0.95rem" }}>
-            [{v.regla}] {v.descripcion}
-          </p>
-          {v.nota && (
-            <p style={{ fontSize: "0.85rem", color: "#666", marginTop: "0.25rem" }}>
-              {v.nota}
+      </div>
+      <div className="divide-y divide-border">
+        {validaciones.map((v, i) => (
+          <div key={i} className="px-5 py-4">
+            <p className="font-medium text-foreground text-sm">
+              <span className="font-mono text-xs text-muted mr-2">
+                [{v.regla}]
+              </span>
+              {v.descripcion}
             </p>
-          )}
-        </div>
-      ))}
+            {v.nota && (
+              <p className="text-sm text-muted mt-1.5 leading-relaxed">
+                {v.nota}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

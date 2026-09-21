@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Controlador de Documentos de Comercio Exterior",
-  description: "Detecta incoherencias entre factura y packing list antes del despacho aduanero",
+  description:
+    "Detecta incoherencias entre factura, packing list y documento de transporte antes del despacho aduanero",
 };
 
 export default function RootLayout({
@@ -12,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={inter.className}>
       <body>{children}</body>
     </html>
   );
