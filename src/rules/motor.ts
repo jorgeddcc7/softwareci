@@ -764,6 +764,7 @@ function reglaGEN_070(
     ["comprador.nombre_legal", factura.comprador.nombre_legal],
     ["incoterm.codigo", factura.incoterm.codigo],
     ["moneda", factura.moneda],
+    ["condiciones_pago", factura.condiciones_pago],
     ["valoracion.total_facturado", factura.valoracion.total_facturado],
   ];
 
@@ -782,6 +783,25 @@ function reglaGEN_070(
           [nombreCampo],
           { campo: nombreCampo, estado: campo.estado },
           `El campo "${nombreCampo}" es obligatorio en una factura comercial y no se ha encontrado. Estado: ${campo.estado}.`
+        )
+      );
+    }
+  }
+
+  // País de origen por línea (obligatorio en operaciones de importación)
+  for (let i = 0; i < factura.lineas.length; i++) {
+    const linea = factura.lineas[i];
+    if (!tieneTexto(linea.pais_origen)) {
+      validaciones.push(
+        crearValidacion(
+          "GEN-070",
+          `País de origen ausente en línea ${i + 1} de la factura`,
+          "discrepancia",
+          "media",
+          ["factura_comercial"],
+          [`lineas[${i}].pais_origen`],
+          { campo: `lineas[${i}].pais_origen`, estado: linea.pais_origen.estado },
+          `La línea ${i + 1} ("${linea.descripcion_comercial.valor ?? ""}") no indica el país de origen. Es un dato relevante para la valoración y el régimen arancelario.`
         )
       );
     }
