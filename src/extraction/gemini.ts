@@ -16,12 +16,16 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Modelo a usar. Gemini Flash es el más rápido y barato,
- * y está incluido en el nivel gratuito.
+ * Modelos en orden de preferencia.
+ *
+ * Criterio: priorizar los Flash-Lite porque tienen 500 RPD gratuitas
+ * frente a las 20 RPD de los Flash normales.
+ *
+ * Si un modelo falla, se prueba el siguiente.
  */
 const MODELOS_FALLBACK = [
   "gemini-3.5-flash-lite",
-  "gemini-2.5-flash",
+  "gemini-3.1-flash-lite",
   "gemini-3.6-flash",
 ];
 
@@ -70,29 +74,76 @@ export async function subirPdf(rutaPdf: string): Promise<string> {
     config: { mimeType: "application/pdf" },
   });
 
-if (!archivo.uri) {
-  throw new Error("La API de Gemini no devolvió una URI válida para el PDF.");
+  if (!archivo.uri) {
+    throw new Error("La API de Gemini no devolvió una URI válida para el PDF.");
+  }
+
+  console.log(`  PDF subido. URI: ${archivo.uri}`);
+  return archivo.uri;
 }
 
-console.log(`  PDF subido. URI: ${archivo.uri}`);
-return archivo.uri;
-}
+// ============================================================
+// Detección de tipo de error
+// ============================================================
 
 /**
- * Envía un PDF ya subido + un prompt al modelo y devuelve
- * la respuesta como texto.
- *
- * Si Gemini devuelve 503 (servidor saturado) o 429 (rate limit),
- * reintenta hasta 3 veces con espera creciente entre intentos.
+ * Clasifica un error de Gemini:
+ * - "recuperable": 503/429 → reintentar el mismo modelo.
+ * - "modelo_no_existe": 404 → saltar al siguiente modelo.
+ * - "fatal": cualquier otro → abortar.
  */
+function detectarTipoError(
+  error: unknown
+): "recuperable" | "modelo_no_existe" | "fatal" {
+  if (!error || typeof error !== "object") return "fatal";
+
+  const err = error as { status?: number; message?: string };
+
+  // 404: modelo no existe en esta cuenta
+  if (err.status === 404) return "modelo_no_existe";
+
+  // 503 o 429: recuperable (saturado o rate limit)
+  if (err.status === 503 || err.status === 429) return "recuperable";
+
+  // Comprobación en el mensaje como fallback
+  if (typeof err.message === "string") {
+    if (
+      err.message.includes("NOT_FOUND") ||
+      err.message.includes("no longer available")
+    ) {
+      return "modelo_no_existe";
+    }
+    if (
+      err.message.includes("503") ||
+      err.message.includes("UNAVAILABLE")
+    ) {
+      return "recuperable";
+    }
+    if (
+      err.message.includes("429") ||
+      err.message.includes("RESOURCE_EXHAUSTED")
+    ) {
+      return "recuperable";
+    }
+    if (err.message.includes("high demand")) return "recuperable";
+  }
+
+  return "fatal";
+}
+
+// ============================================================
+// Análisis de PDF con fallback entre modelos
+// ============================================================
+
 /**
  * Envía un PDF ya subido + un prompt al modelo y devuelve
  * la respuesta como texto.
  *
  * Estrategia de fallback:
- * - Prueba cada modelo de la lista MODELOS_FALLBACK en orden.
- * - Cada modelo tiene 2 intentos con espera creciente.
- * - Si un modelo falla 2 veces, pasa al siguiente.
+ * - Prueba cada modelo de MODELOS_FALLBACK en orden.
+ * - Cada modelo tiene INTENTOS_POR_MODELO intentos.
+ * - Si el modelo no existe (404), salta al siguiente sin esperar.
+ * - Si está saturado (503/429), espera y reintenta.
  * - Si todos fallan, lanza error.
  */
 export async function analizarPdf(
@@ -101,8 +152,8 @@ export async function analizarPdf(
 ): Promise<string> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 1;
-  const ESPERA_BASE_MS = 3000; // 3 segundos (por si acaso)
+  const INTENTOS_POR_MODELO = 2;
+  const ESPERA_BASE_MS = 3000; // 3 segundos
 
   let ultimoError: unknown = null;
 
@@ -140,14 +191,22 @@ export async function analizarPdf(
         return texto;
       } catch (error: unknown) {
         ultimoError = error;
+        const tipoError = detectarTipoError(error);
 
-        const esRecuperable = detectarErrorRecuperable(error);
-
-        if (!esRecuperable) {
-          // Error no recuperable: lanzamos inmediatamente
+        // Error fatal: abortar inmediatamente
+        if (tipoError === "fatal") {
           throw error;
         }
 
+        // Modelo no existe: saltar al siguiente sin esperar
+        if (tipoError === "modelo_no_existe") {
+          console.log(
+            `  [${modelo}] no existe en esta cuenta. Probando siguiente modelo...`
+          );
+          break; // sale del bucle de intentos, pasa al siguiente modelo
+        }
+
+        // Recuperable: esperar y reintentar
         if (intento < INTENTOS_POR_MODELO) {
           const espera = ESPERA_BASE_MS * intento;
           console.log(
@@ -168,39 +227,10 @@ export async function analizarPdf(
   );
 }
 
-/**
- * Detecta si un error de Gemini es recuperable (503, 429)
- * y merece la pena reintentar.
- */
-function detectarErrorRecuperable(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-
-  // La librería de Google lanza ApiError con campo status numérico
-  const err = error as { status?: number; message?: string };
-
-  if (err.status === 503 || err.status === 429) return true;
-
-  // Fallback: buscar en el mensaje
-  if (typeof err.message === "string") {
-    if (err.message.includes("503") || err.message.includes("UNAVAILABLE")) return true;
-    if (err.message.includes("429") || err.message.includes("RESOURCE_EXHAUSTED")) return true;
-    if (err.message.includes("high demand")) return true;
-  }
-
-  return false;
-}
-
 // ============================================================
 // Evaluación de especificidad de descripciones (Nivel 2)
 // ============================================================
 
-/**
- * Evalúa si una descripción comercial es suficientemente específica.
- * Devuelve un objeto con el resultado.
- *
- * Solo se llama para descripciones que NO han sido detectadas
- * por la lista negra determinista.
- */
 /**
  * Evalúa si una descripción comercial es suficientemente específica.
  * Usa la misma estrategia de fallback que analizarPdf.
@@ -216,7 +246,7 @@ export async function evaluarEspecificidad(
 }> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 1;
+  const INTENTOS_POR_MODELO = 2;
   const ESPERA_BASE_MS = 3000;
 
   let ultimoError: unknown = null;
@@ -241,15 +271,26 @@ export async function evaluarEspecificidad(
 
         let limpio = texto.trim();
         if (limpio.startsWith("```")) {
-          limpio = limpio.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+          limpio = limpio
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/```\s*$/, "");
         }
 
         return JSON.parse(limpio);
       } catch (error: unknown) {
         ultimoError = error;
+        const tipoError = detectarTipoError(error);
 
-        const esRecuperable = detectarErrorRecuperable(error);
-        if (!esRecuperable) throw error;
+        if (tipoError === "fatal") {
+          throw error;
+        }
+
+        if (tipoError === "modelo_no_existe") {
+          console.log(
+            `  [${modelo}] no existe en esta cuenta. Probando siguiente modelo...`
+          );
+          break;
+        }
 
         if (intento < INTENTOS_POR_MODELO) {
           const espera = ESPERA_BASE_MS * intento;

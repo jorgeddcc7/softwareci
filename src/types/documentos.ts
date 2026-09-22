@@ -161,6 +161,7 @@ export interface TotalesFisicos {
  */
 export interface FacturaComercial {
   tipo_documento: "factura_comercial";
+  es_proforma: CampoTexto;
   numero_factura: CampoTexto;
   fecha_emision: CampoTexto;
   vendedor: Parte;

@@ -108,11 +108,16 @@ INSTRUCCIONES ESPECÍFICAS PARA FACTURA:
 - "pais_origen" es el país de fabricación/origen de la mercancía, NO el país
   del vendedor ni de la dirección de envío.
 - "ciudad": extrae SOLO el nombre de la ciudad de cada parte (ej: "Shanghai", "Barcelona"). NO incluyas país, provincia ni código postal.
+- "es_proforma": detecta si el documento es una FACTURA PROFORMA en lugar de una factura comercial.
+  · Si el título dice "PROFORMA", "Proforma Invoice", "Factura Proforma" → valor = "true".
+  · Si dice "COMMERCIAL INVOICE", "Factura Comercial", "Invoice" sin mención de proforma → valor = "false".
+  · Si hay duda → valor = null con estado "ambiguo" y explica en nota.
 
 ESTRUCTURA DEL JSON DE SALIDA:
 
 {
   "tipo_documento": "factura_comercial",
+  "es_proforma": <CampoTexto>,
   "numero_factura": <CampoTexto>,
   "fecha_emision": <CampoTexto>,
   "vendedor": <Parte>,

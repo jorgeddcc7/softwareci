@@ -1790,6 +1790,8 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
     "Mejorar la descripción siguiendo la sugerencia del análisis. Detallar qué es, para qué sirve y características técnicas.",
   "INV-070":
     "Solicitar al proveedor una factura con el valor de la mercancía (FOB) desglosado del flete y el seguro. El Incoterm declarado lo requiere para la valoración aduanera.",
+  "INV-080":
+    "Solicitar al proveedor la factura comercial definitiva. Las proformas no son válidas para el despacho aduanero.",
 
   // Factura vs documento de transporte
   "INV-BL-001":
@@ -1948,6 +1950,57 @@ function reglaINV_070(factura: FacturaComercial): Validacion {
   );
 }
 
+/**
+ * INV-080: La factura no es una proforma.
+ * Una factura proforma NO es válida para el despacho aduanero.
+ * Es un documento previo, comercial, sin validez fiscal.
+ */
+function reglaINV_080(factura: FacturaComercial): Validacion {
+  const esProforma = factura.es_proforma.valor;
+
+  if (esProforma === null || esProforma === undefined) {
+    return crearValidacion(
+      "INV-080",
+      "El documento es una factura comercial válida para el despacho",
+      "no_comprobable",
+      "alta",
+      ["factura_comercial"],
+      ["es_proforma"],
+      { es_proforma: null },
+      "No se ha podido determinar si el documento es una factura comercial o una proforma. Verificar manualmente."
+    );
+  }
+
+  const esProformaBool =
+    typeof esProforma === "string"
+      ? esProforma.toLowerCase().trim() === "true"
+      : Boolean(esProforma);
+
+  if (esProformaBool) {
+    return crearValidacion(
+      "INV-080",
+      "El documento es una factura comercial válida para el despacho",
+      "discrepancia",
+      "alta",
+      ["factura_comercial"],
+      ["es_proforma"],
+      { es_proforma: true },
+      "El documento es una factura PROFORMA. Las proformas no son válidas para el despacho aduanero. Solicitar al proveedor la factura comercial definitiva."
+    );
+  }
+
+  return crearValidacion(
+    "INV-080",
+    "El documento es una factura comercial válida para el despacho",
+    "ok",
+    "alta",
+    ["factura_comercial"],
+    ["es_proforma"],
+    { es_proforma: false },
+    ""
+  );
+}
+
 // Orquestador
 
 export function ejecutarReglas(
@@ -1980,6 +2033,7 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_050(factura));
   validaciones.push(reglaINV_051(factura));
   validaciones.push(reglaINV_070(factura));
+  validaciones.push(reglaINV_080(factura));
   validaciones.push(reglaINV_PL_052(factura, packing));
   validaciones.push(reglaINV_PL_061(factura, packing));
   validaciones.push(...reglaGEN_070(factura, packing));
