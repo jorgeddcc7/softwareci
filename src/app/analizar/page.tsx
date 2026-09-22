@@ -28,7 +28,7 @@ interface ResultadoAnalisis {
     referencia_factura: string | null;
   };
   transporte: {
-    tipo: "bill_of_lading" | "air_waybill";
+    tipo: "bill_of_lading" | "air_waybill" | "cmr";
     numero: string | null;
     puerto_carga: string | null;
     puerto_descarga: string | null;
@@ -43,7 +43,7 @@ export default function AnalizarPage() {
   const [packing, setPacking] = useState<File | null>(null);
   const [transporte, setTransporte] = useState<File | null>(null);
   const [tipoTransporte, setTipoTransporte] = useState<
-    "auto" | "bill_of_lading" | "air_waybill"
+    "auto" | "bill_of_lading" | "air_waybill" | "cmr"
   >("auto");
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
@@ -137,7 +137,7 @@ export default function AnalizarPage() {
           />
           <ZonaSubida
             etiqueta="Documento de transporte"
-            subtitulo="Opcional (B/L o AWB)"
+            subtitulo="Opcional (B/L, AWB o CMR)"
             requerido={false}
             archivo={transporte}
             onArchivo={setTransporte}
@@ -167,6 +167,12 @@ export default function AnalizarPage() {
                 valor="air_waybill"
                 etiqueta="Air Waybill (aéreo)"
                 seleccionado={tipoTransporte === "air_waybill"}
+                onSeleccionar={setTipoTransporte}
+              />
+              <TipoOpcion
+                valor="cmr"
+                etiqueta="CMR (carretera)"
+                seleccionado={tipoTransporte === "cmr"}
                 onSeleccionar={setTipoTransporte}
               />
             </div>
@@ -308,7 +314,12 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
             <>
               {" "}
               ·{" "}
-              {resultado.transporte.tipo === "air_waybill" ? "AWB" : "B/L"}:{" "}
+              {resultado.transporte.tipo === "air_waybill"
+                ? "AWB"
+                : resultado.transporte.tipo === "cmr"
+                  ? "CMR"
+                  : "B/L"}
+              :{" "}
               <strong>{resultado.transporte.numero ?? "—"}</strong>
             </>
           )}
@@ -431,10 +442,10 @@ function TipoOpcion({
   seleccionado,
   onSeleccionar,
 }: {
-  valor: "auto" | "bill_of_lading" | "air_waybill";
+  valor: "auto" | "bill_of_lading" | "air_waybill" | "cmr";
   etiqueta: string;
   seleccionado: boolean;
-  onSeleccionar: (v: "auto" | "bill_of_lading" | "air_waybill") => void;
+  onSeleccionar: (v: "auto" | "bill_of_lading" | "air_waybill" | "cmr") => void;
 }) {
   return (
     <button

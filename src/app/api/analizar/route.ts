@@ -87,9 +87,10 @@ export async function POST(request: NextRequest) {
 
     // Leer el tipo de transporte elegido por el usuario
     const tipoTransporteRaw = formData.get("tipo_transporte") as string | null;
-    const tipoTransporte: "auto" | "bill_of_lading" | "air_waybill" =
+    const tipoTransporte: "auto" | "bill_of_lading" | "air_waybill" | "cmr" =
       tipoTransporteRaw === "bill_of_lading" ||
-      tipoTransporteRaw === "air_waybill"
+      tipoTransporteRaw === "air_waybill" ||
+      tipoTransporteRaw === "cmr"
         ? tipoTransporteRaw
         : "auto";
 

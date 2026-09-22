@@ -97,13 +97,26 @@ function detectarTipoError(
 ): "recuperable" | "modelo_no_existe" | "fatal" {
   if (!error || typeof error !== "object") return "fatal";
 
-  const err = error as { status?: number; message?: string };
+  const err = error as { status?: number; message?: string; code?: string };
 
   // 404: modelo no existe en esta cuenta
   if (err.status === 404) return "modelo_no_existe";
 
   // 503 o 429: recuperable (saturado o rate limit)
   if (err.status === 503 || err.status === 429) return "recuperable";
+
+  // Errores de red transitorios: recuperables
+  if (err.code) {
+    if (
+      err.code === "UND_ERR_HEADERS_TIMEOUT" ||
+      err.code === "UND_ERR_CONNECT_TIMEOUT" ||
+      err.code === "UND_ERR_SOCKET" ||
+      err.code === "ECONNRESET" ||
+      err.code === "ETIMEDOUT"
+    ) {
+      return "recuperable";
+    }
+  }
 
   // Comprobación en el mensaje como fallback
   if (typeof err.message === "string") {
@@ -126,6 +139,9 @@ function detectarTipoError(
       return "recuperable";
     }
     if (err.message.includes("high demand")) return "recuperable";
+    if (err.message.includes("fetch failed")) return "recuperable";
+    if (err.message.includes("Headers Timeout")) return "recuperable";
+    if (err.message.includes("network")) return "recuperable";
   }
 
   return "fatal";

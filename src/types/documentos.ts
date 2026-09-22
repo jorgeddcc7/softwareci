@@ -270,7 +270,7 @@ export interface CargaBL {
  * - air_waybill: AWB aéreo.
  * En v2 se añadirán: cmr (carretera), rail (ferroviario).
  */
-export type TipoTransporte = "bill_of_lading" | "air_waybill";
+export type TipoTransporte = "bill_of_lading" | "air_waybill" | "cmr";
 export interface DocumentoTransporte {
   tipo_documento: TipoTransporte;
 
@@ -302,6 +302,10 @@ export interface DocumentoTransporte {
   numero_vuelo: CampoTexto;
   fecha_vuelo: CampoTexto;
   peso_cobrable: CampoMagnitud;
+
+  // Medio de transporte - carretera (solo CMR)
+  matricula_vehiculo: CampoTexto;
+  nombre_transportista_carretera: CampoTexto;
 
   // Referencias
   numero_factura_referencia: CampoTexto;

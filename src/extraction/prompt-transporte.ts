@@ -60,6 +60,9 @@ ESTRUCTURA DEL JSON DE SALIDA:
   "numero_vuelo": <CampoTexto>,
   "fecha_vuelo": <CampoTexto>,
   "peso_cobrable": <CampoMagnitud>,
+  "matricula_vehiculo": <CampoTexto>,
+  "nombre_transportista_carretera": <CampoTexto>,
+  "fecha_carga": <CampoTexto>,
   "numero_factura_referencia": <CampoTexto>,
   "numero_pedido_referencia": <CampoTexto>,
   "numero_reserva": <CampoTexto>,
@@ -128,24 +131,31 @@ FORMAS DE CADA TIPO DE CAMPO:
  * @param tipoEsperado - Si es "auto", el modelo decide el tipo. Si es un tipo concreto, lo usa.
  */
 export function promptTransporte(
-  tipoEsperado: "auto" | "bill_of_lading" | "air_waybill" = "auto"
+  tipoEsperado: "auto" | "bill_of_lading" | "air_waybill" | "cmr" = "auto"
 ): string {
   let instruccionTipo = "";
 
   if (tipoEsperado === "bill_of_lading") {
     instruccionTipo = `El documento que vas a analizar es un BILL OF LADING (B/L) marítimo.
 Devuelve "tipo_documento": "bill_of_lading".
-Los campos "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" no aplican a un B/L: márcalos como "no_aplicable".
+Los campos "aerolinea", "numero_vuelo", "fecha_vuelo", "peso_cobrable", "matricula_vehiculo" y "nombre_transportista_carretera" no aplican a un B/L: márcalos como "no_aplicable".
 Los campos "nombre_buque" y "numero_viaje" sí aplican.`;
   } else if (tipoEsperado === "air_waybill") {
     instruccionTipo = `El documento que vas a analizar es un AIR WAYBILL (AWB) aéreo.
 Devuelve "tipo_documento": "air_waybill".
-Los campos "nombre_buque", "numero_viaje" y "contenedores" no aplican a un AWB: márcalos como "no_aplicable".
+Los campos "nombre_buque", "numero_viaje", "contenedores", "matricula_vehiculo" y "nombre_transportista_carretera" no aplican a un AWB: márcalos como "no_aplicable".
 Los campos "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" sí aplican.`;
+  } else if (tipoEsperado === "cmr") {
+    instruccionTipo = `El documento que vas a analizar es una CARTA DE PORTE POR CARRETERA (CMR).
+Devuelve "tipo_documento": "cmr".
+Los campos "nombre_buque", "numero_viaje", "contenedores", "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" no aplican a un CMR: márcalos como "no_aplicable".
+Los campos "matricula_vehiculo", "nombre_transportista_carretera" y "fecha_carga" sí aplican.
+En un CMR, el "puerto_carga" es el lugar de carga (origen) y el "puerto_descarga" es el lugar de descarga (destino).`;
   } else {
     instruccionTipo = `Debes DETECTAR el tipo de documento de transporte:
 - Si es un BILL OF LADING marítimo, devuelve "tipo_documento": "bill_of_lading".
 - Si es un AIR WAYBILL aéreo, devuelve "tipo_documento": "air_waybill".
+- Si es una CARTA DE PORTE POR CARRETERA (CMR), devuelve "tipo_documento": "cmr".
 Los campos que no apliquen al tipo detectado se marcan como "no_aplicable".`;
   }
 
@@ -170,6 +180,9 @@ INSTRUCCIONES ESPECÍFICAS:
 - Ejemplo: si ves "Barcelona, Spain" en el puerto de descarga:
   · "puerto_descarga": "Barcelona, Spain"
   · "ciudad_descarga": "Barcelona"
+- En un CMR, "matricula_vehiculo" es la matrícula del camión o vehículo.
+- "nombre_transportista_carretera" es el nombre del transportista (empresa de transporte).
+- "fecha_carga" es la fecha de toma de carga.
 
 ${ESTRUCTURA_JSON}
 
