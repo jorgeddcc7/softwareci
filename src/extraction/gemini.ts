@@ -20,9 +20,9 @@ import path from "path";
  * y está incluido en el nivel gratuito.
  */
 const MODELOS_FALLBACK = [
-  "gemini-3.6-flash",
   "gemini-3.5-flash-lite",
   "gemini-2.5-flash",
+  "gemini-3.6-flash",
 ];
 
 /**

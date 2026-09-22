@@ -1768,6 +1768,8 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
     "Ampliar la descripción con composición, uso, modelo o referencia. Las descripciones genéricas pueden generar retenciones en aduana.",
   "INV-021":
     "Mejorar la descripción siguiendo la sugerencia del análisis. Detallar qué es, para qué sirve y características técnicas.",
+  "INV-070":
+    "Solicitar al proveedor una factura con el valor de la mercancía (FOB) desglosado del flete y el seguro. El Incoterm declarado lo requiere para la valoración aduanera.",
 
   // Factura vs documento de transporte
   "INV-BL-001":
@@ -1815,7 +1817,7 @@ function reglaTRANS_001(
   if (!ciudadConsignatario || !ciudadDescarga) {
     return crearValidacion(
       "TRANS-001",
-      "La ciudad de destino del documento de transporte coincide con la ciudad del consignatario",
+      "La ciudad de destino del documento de transporte no coincide con la ciudad del consignatario",
       "no_comprobable",
       "alta",
       ["documento_transporte"],
@@ -1844,6 +1846,85 @@ function reglaTRANS_001(
     coincide
       ? ""
       : `El consignatario está en "${ciudadConsignatario}", pero el destino del envío es "${ciudadDescarga}". Verificar que el envío va a la ciudad correcta.`
+  );
+}
+
+/**
+ * INV-070: Si el Incoterm incluye flete y/o seguro (CIF, CIP, CFR, CPT),
+ * la factura debe desglosar el valor de la mercancía y los cargos.
+ *
+ * La aduana necesita ver el desglose FOB + flete + seguro para
+ * verificar la valoración aduanera.
+ */
+function reglaINV_070(factura: FacturaComercial): Validacion {
+  const incotermRaw = factura.incoterm.codigo.valor;
+  const incoterm = incotermRaw ? incotermRaw.toUpperCase().trim() : null;
+
+  if (!incoterm) {
+    return crearValidacion(
+      "INV-070",
+      "Desglose de valoración según Incoterm",
+      "no_comprobable",
+      "media",
+      ["factura_comercial"],
+      ["incoterm.codigo"],
+      { incoterm: null },
+      "No se puede comprobar porque la factura no tiene Incoterm."
+    );
+  }
+
+  // Incoterms que incluyen flete obligatoriamente
+  const incotermsConFlete = ["CIF", "CIP", "CFR", "CPT"];
+  // Incoterms que incluyen seguro obligatoriamente
+  const incotermsConSeguro = ["CIF", "CIP"];
+
+  // Si el Incoterm no incluye flete, no hay nada que comprobar
+  if (!incotermsConFlete.includes(incoterm)) {
+    return crearValidacion(
+      "INV-070",
+      "Desglose de valoración según Incoterm",
+      "ok",
+      "media",
+      ["factura_comercial"],
+      ["incoterm.codigo"],
+      { incoterm },
+      ""
+    );
+  }
+
+  const transporte = factura.valoracion.transporte.importe;
+  const seguro = factura.valoracion.seguro.importe;
+  const requiereSeguro = incotermsConSeguro.includes(incoterm);
+
+  const faltaTransporte = transporte === null;
+  const faltaSeguro = requiereSeguro && seguro === null;
+
+  if (!faltaTransporte && !faltaSeguro) {
+    return crearValidacion(
+      "INV-070",
+      "Desglose de valoración según Incoterm",
+      "ok",
+      "alta",
+      ["factura_comercial"],
+      ["incoterm.codigo", "valoracion.transporte", "valoracion.seguro"],
+      { incoterm, transporte, seguro },
+      ""
+    );
+  }
+
+  const faltantes: string[] = [];
+  if (faltaTransporte) faltantes.push("el valor del flete");
+  if (faltaSeguro) faltantes.push("el valor del seguro");
+
+  return crearValidacion(
+    "INV-070",
+    "Desglose de valoración según Incoterm",
+    "discrepancia",
+    "alta",
+    ["factura_comercial"],
+    ["incoterm.codigo", "valoracion.transporte", "valoracion.seguro"],
+    { incoterm, transporte, seguro },
+    `El Incoterm ${incoterm} incluye flete${requiereSeguro ? " y seguro" : ""} en el precio, pero la factura no desglosa ${faltantes.join(" ni ")}. La aduana necesita ver el desglose de valoración para verificar el valor declarado.`
   );
 }
 
@@ -1878,6 +1959,7 @@ export function ejecutarReglas(
   validaciones.push(...reglaINV_PL_042(factura, packing));
   validaciones.push(reglaINV_050(factura));
   validaciones.push(reglaINV_051(factura));
+  validaciones.push(reglaINV_070(factura));
   validaciones.push(reglaINV_PL_052(factura, packing));
   validaciones.push(reglaINV_PL_061(factura, packing));
   validaciones.push(...reglaGEN_070(factura, packing));
