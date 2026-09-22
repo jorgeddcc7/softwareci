@@ -288,6 +288,7 @@ INSTRUCCIONES ESPECÍFICAS PARA PACKING LIST:
   · Si hay dos números posibles en la cabecera y no queda claro cuál es la
     factura, deja "no_localizado" y explica en "nota".
 - "ciudad": extrae SOLO el nombre de la ciudad de cada parte (ej: "Shanghai", "Barcelona"). NO incluyas país, provincia ni código postal.
+- "destinatario": es la empresa a la que va dirigida la mercancía. Puede aparecer con etiquetas como "SOLD TO", "Buyer", "Consignee", "Destinatario", "Ship To". Si hay varias, usa la que sea el comprador/destinatario comercial. NO la dejes como no_localizado si aparece alguna de estas etiquetas.
 
 ESTRUCTURA DEL JSON DE SALIDA:
 
