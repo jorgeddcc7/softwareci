@@ -1,12 +1,3 @@
-// ============================================================
-// API Route: /api/analizar
-// ============================================================
-//
-// Recibe dos o tres PDFs (factura, packing, y opcionalmente B/L),
-// los procesa con Gemini, ejecuta el motor de reglas y devuelve
-// el resultado.
-// ============================================================
-
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
@@ -19,7 +10,11 @@ import {
   PackingList,
   DocumentoTransporte,
 } from "@/types/documentos";
-import { ejecutarReglas } from "@/rules/motor";
+import {
+  ejecutarReglas,
+  generarValidacionesINV_021,
+  ACCIONES_SUGERIDAS,
+} from "@/rules/motor";
 
 export const maxDuration = 300;
 
@@ -55,37 +50,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guardar factura
-    const facturaBuffer = Buffer.from(await facturaFile.arrayBuffer());
-    const rutaFactura = await guardarTemporal("factura.pdf", facturaBuffer);
-
-    // Guardar packing
-    const packingBuffer = Buffer.from(await packingFile.arrayBuffer());
-    const rutaPacking = await guardarTemporal("packing.pdf", packingBuffer);
-
-    // Guardar transporte (opcional)
-    let rutaTransporte: string | null = null;
-    if (transporteFile) {
-      const transporteBuffer = Buffer.from(await transporteFile.arrayBuffer());
-      rutaTransporte = await guardarTemporal("transporte.pdf", transporteBuffer);
-    }
-
-    // Extraer los tres documentos EN PARALELO para reducir el tiempo total
-    console.log("Extrayendo documentos en paralelo...");
-
-    const extraerFacturaPromise = (async () => {
-      const uri = await subirPdf(rutaFactura);
-      const resp = await analizarPdf(uri, promptFactura());
-      return JSON.parse(limpiarJson(resp)) as FacturaComercial;
-    })();
-
-    const extraerPackingPromise = (async () => {
-      const uri = await subirPdf(rutaPacking);
-      const resp = await analizarPdf(uri, promptPackingList());
-      return JSON.parse(limpiarJson(resp)) as PackingList;
-    })();
-
-    // Leer el tipo de transporte elegido por el usuario
     const tipoTransporteRaw = formData.get("tipo_transporte") as string | null;
     const tipoTransporte: "auto" | "bill_of_lading" | "air_waybill" | "cmr" =
       tipoTransporteRaw === "bill_of_lading" ||
@@ -93,6 +57,33 @@ export async function POST(request: NextRequest) {
       tipoTransporteRaw === "cmr"
         ? tipoTransporteRaw
         : "auto";
+
+    const facturaBuffer = Buffer.from(await facturaFile.arrayBuffer());
+    const rutaFactura = await guardarTemporal("factura.pdf", facturaBuffer);
+
+    const packingBuffer = Buffer.from(await packingFile.arrayBuffer());
+    const rutaPacking = await guardarTemporal("packing.pdf", packingBuffer);
+
+    let rutaTransporte: string | null = null;
+    if (transporteFile) {
+      const transporteBuffer = Buffer.from(await transporteFile.arrayBuffer());
+      rutaTransporte = await guardarTemporal("transporte.pdf", transporteBuffer);
+    }
+
+    // Extraer los 3 documentos EN PARALELO
+    console.log("Extrayendo documentos en paralelo...");
+
+    const extraerFacturaPromise = (async () => {
+      const uri = await subirPdf(rutaFactura);
+      const resp = await analizarPdf(uri, promptFactura());
+      return JSON.parse(limpiarJson(resp));
+    })();
+
+    const extraerPackingPromise = (async () => {
+      const uri = await subirPdf(rutaPacking);
+      const resp = await analizarPdf(uri, promptPackingList());
+      return JSON.parse(limpiarJson(resp)) as PackingList;
+    })();
 
     const extraerTransportePromise = rutaTransporte
       ? (async () => {
@@ -102,20 +93,39 @@ export async function POST(request: NextRequest) {
         })()
       : Promise.resolve(null);
 
-    const [factura, packing, transporte] = await Promise.all([
+    const [facturaRaw, packing, transporte] = await Promise.all([
       extraerFacturaPromise,
       extraerPackingPromise,
       extraerTransportePromise,
     ]);
 
-    // Ejecutar motor de reglas
+    // Extraer la factura y las descripciones evaluadas del mismo JSON
+    const factura = facturaRaw as FacturaComercial;
+    const descripcionesEvaluadas =
+      (facturaRaw.descripciones_evaluadas as Array<{
+        indice_linea: number;
+        descripcion: string;
+        es_especifica: boolean;
+        motivo: string;
+        sugerencia: string;
+        confianza: "alta" | "media" | "baja";
+      }>) ?? [];
+
+    // Motor de reglas
+    console.log("Ejecutando motor de reglas...");
     const { validaciones, advertencias } = ejecutarReglas(
       factura,
       packing,
       transporte
     );
 
-    // Calcular resultado global
+    // Nivel 2: usamos las evaluaciones que ya vienen en el JSON de la factura
+    const validacionesINV021 = generarValidacionesINV_021(descripcionesEvaluadas);
+    for (const v of validacionesINV021) {
+      v.accion_sugerida = ACCIONES_SUGERIDAS[v.regla] ?? "";
+    }
+    validaciones.push(...validacionesINV021);
+
     const altas = validaciones.filter(
       (v) => v.resultado === "discrepancia" && v.severidad === "alta"
     );
@@ -132,7 +142,6 @@ export async function POST(request: NextRequest) {
       resultadoGlobal = "revisar";
     else resultadoGlobal = "apto";
 
-    // Limpiar temporales
     try {
       fs.unlinkSync(rutaFactura);
       fs.unlinkSync(rutaPacking);
@@ -141,7 +150,6 @@ export async function POST(request: NextRequest) {
       // Nada
     }
 
-    // Respuesta
     return NextResponse.json({
       exito: true,
       factura: {
@@ -158,8 +166,14 @@ export async function POST(request: NextRequest) {
         ? {
             tipo: transporte.tipo_documento,
             numero: transporte.numero_documento.valor,
-            puerto_carga: transporte.puerto_carga.valor,
-            puerto_descarga: transporte.puerto_descarga.valor,
+            puerto_carga:
+              transporte.puerto_carga.valor ??
+              transporte.ciudad_carga.valor ??
+              null,
+            puerto_descarga:
+              transporte.puerto_descarga.valor ??
+              transporte.ciudad_descarga.valor ??
+              null,
           }
         : null,
       resultado_global: resultadoGlobal,

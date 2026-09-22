@@ -30,6 +30,19 @@ const MODELOS_FALLBACK = [
 ];
 
 /**
+ * Cache en memoria del último modelo que funcionó. Se reinicia cada vez que se arranca el servidor. Permite no probar siempre desde el primer modelo cuando ya, sabemos cuál está funcionando en este momento.*/
+let modeloPreferido: string | null = null;
+
+/**
+ * Devuelve la lista de modelos ordenada, con el último que funcionó primero.
+ */
+function obtenerModelosOrdenados(): string[] {
+  if (!modeloPreferido) return MODELOS_FALLBACK;
+  const resto = MODELOS_FALLBACK.filter((m) => m !== modeloPreferido);
+  return [modeloPreferido, ...resto];
+}
+
+/**
  * Verifica que la API key esté configurada.
  * Si no, lanza un error claro en lugar de fallar de forma confusa.
  */
@@ -168,17 +181,22 @@ export async function analizarPdf(
 ): Promise<string> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 2;
-  const ESPERA_BASE_MS = 3000; // 3 segundos
+  const RONDAS = 2; // Si todos fallan, hacemos una segunda ronda con espera
+  const ESPERA_ENTRE_RONDAS = 15000; // 20 segundos
 
   let ultimoError: unknown = null;
 
-  for (const modelo of MODELOS_FALLBACK) {
-    for (let intento = 1; intento <= INTENTOS_POR_MODELO; intento++) {
+  for (let ronda = 1; ronda <= RONDAS; ronda++) {
+    if (ronda > 1) {
+      console.log(
+        `  Todos los modelos fallaron. Esperando ${ESPERA_ENTRE_RONDAS / 1000}s antes de reintentar (ronda ${ronda}/${RONDAS})...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, ESPERA_ENTRE_RONDAS));
+    }
+
+    for (const modelo of obtenerModelosOrdenados()) {
       try {
-        console.log(
-          `  Enviando a Gemini [${modelo}] (intento ${intento}/${INTENTOS_POR_MODELO})...`
-        );
+        console.log(`  Enviando a Gemini [${modelo}] (ronda ${ronda}/${RONDAS})...`);
 
         const respuesta = await cliente.models.generateContent({
           model: modelo,
@@ -203,6 +221,9 @@ export async function analizarPdf(
           throw new Error("Gemini no devolvió texto en la respuesta.");
         }
 
+        // Recordar este modelo como preferido
+        modeloPreferido = modelo;
+
         console.log(`  Respuesta recibida (${texto.length} caracteres).`);
         return texto;
       } catch (error: unknown) {
@@ -214,32 +235,20 @@ export async function analizarPdf(
           throw error;
         }
 
-        // Modelo no existe: saltar al siguiente sin esperar
+        // Modelo no existe: saltar al siguiente
         if (tipoError === "modelo_no_existe") {
-          console.log(
-            `  [${modelo}] no existe en esta cuenta. Probando siguiente modelo...`
-          );
-          break; // sale del bucle de intentos, pasa al siguiente modelo
+          console.log(`  [${modelo}] no existe. Probando siguiente...`);
+          continue;
         }
 
-        // Recuperable: esperar y reintentar
-        if (intento < INTENTOS_POR_MODELO) {
-          const espera = ESPERA_BASE_MS * intento;
-          console.log(
-            `  [${modelo}] saturado. Reintentando en ${espera / 1000}s...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, espera));
-        } else {
-          console.log(
-            `  [${modelo}] falló tras ${INTENTOS_POR_MODELO} intentos. Probando siguiente modelo...`
-          );
-        }
+        // Recuperable (503/429/red): pasar al siguiente modelo
+        console.log(`  [${modelo}] no disponible. Probando siguiente...`);
       }
     }
   }
 
   throw new Error(
-    `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
+    `Todos los modelos fallaron tras ${RONDAS} rondas. Último error: ${String(ultimoError)}`
   );
 }
 
@@ -262,13 +271,17 @@ export async function evaluarEspecificidad(
 }> {
   const cliente = crearCliente();
 
-  const INTENTOS_POR_MODELO = 2;
-  const ESPERA_BASE_MS = 3000;
+  const RONDAS = 2;
+  const ESPERA_ENTRE_RONDAS = 15000;
 
   let ultimoError: unknown = null;
 
-  for (const modelo of MODELOS_FALLBACK) {
-    for (let intento = 1; intento <= INTENTOS_POR_MODELO; intento++) {
+  for (let ronda = 1; ronda <= RONDAS; ronda++) {
+    if (ronda > 1) {
+      await new Promise((resolve) => setTimeout(resolve, ESPERA_ENTRE_RONDAS));
+    }
+
+    for (const modelo of obtenerModelosOrdenados()) {
       try {
         const respuesta = await cliente.models.generateContent({
           model: modelo,
@@ -292,7 +305,95 @@ export async function evaluarEspecificidad(
             .replace(/```\s*$/, "");
         }
 
+        // Recordar este modelo como preferido
+        modeloPreferido = modelo;
+
         return JSON.parse(limpio);
+      } catch (error: unknown) {
+        ultimoError = error;
+        const tipoError = detectarTipoError(error);
+
+        if (tipoError === "fatal") throw error;
+        if (tipoError === "modelo_no_existe") continue;
+
+        console.log(`  [${modelo}] no disponible. Probando siguiente...`);
+      }
+    }
+  }
+
+  throw new Error(
+    `Todos los modelos fallaron tras ${RONDAS} rondas. Último error: ${String(ultimoError)}`
+  );
+}
+
+// ============================================================
+// Análisis combinado (una sola llamada, múltiples PDFs)
+// ============================================================
+
+/**
+ * Envía 2 o 3 PDFs ya subidos + un prompt combinado a Gemini y
+ * devuelve la respuesta como texto.
+ *
+ * Usa la misma estrategia de fallback que analizarPdf.
+ */
+export async function analizarMultiplesPdfs(
+  urisPdfs: string[],
+  prompt: string
+): Promise<string> {
+  const cliente = crearCliente();
+
+  const RONDAS = 2;
+  const ESPERA_ENTRE_RONDAS = 15000;
+
+  let ultimoError: unknown = null;
+
+  for (let ronda = 1; ronda <= RONDAS; ronda++) {
+    if (ronda > 1) {
+      console.log(
+        `  Todos los modelos fallaron. Esperando ${ESPERA_ENTRE_RONDAS / 1000}s antes de reintentar (ronda ${ronda}/${RONDAS})...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, ESPERA_ENTRE_RONDAS));
+    }
+
+    for (const modelo of obtenerModelosOrdenados()) {
+      try {
+        console.log(
+          `  Enviando a Gemini [${modelo}] con ${urisPdfs.length} PDF(s) (ronda ${ronda}/${RONDAS})...`
+        );
+
+        const partes: Array<
+          | { text: string }
+          | { fileData: { fileUri: string; mimeType: string } }
+        > = [{ text: prompt }];
+
+        for (const uri of urisPdfs) {
+          partes.push({
+            fileData: { fileUri: uri, mimeType: "application/pdf" },
+          });
+        }
+
+        const respuesta = await cliente.models.generateContent({
+          model: modelo,
+          contents: [
+            {
+              role: "user",
+              parts: partes,
+            },
+          ],
+          config: {
+            maxOutputTokens: 32000,
+          },
+        });
+
+        const texto = respuesta.text;
+        if (!texto) {
+          throw new Error("Gemini no devolvió texto en la respuesta.");
+        }
+
+        modeloPreferido = modelo;
+
+        console.log(`  Respuesta recibida (${texto.length} caracteres).`);
+        return texto;
       } catch (error: unknown) {
         ultimoError = error;
         const tipoError = detectarTipoError(error);
@@ -302,28 +403,16 @@ export async function evaluarEspecificidad(
         }
 
         if (tipoError === "modelo_no_existe") {
-          console.log(
-            `  [${modelo}] no existe en esta cuenta. Probando siguiente modelo...`
-          );
-          break;
+          console.log(`  [${modelo}] no existe. Probando siguiente...`);
+          continue;
         }
 
-        if (intento < INTENTOS_POR_MODELO) {
-          const espera = ESPERA_BASE_MS * intento;
-          console.log(
-            `  [${modelo}] saturado. Reintentando en ${espera / 1000}s...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, espera));
-        } else {
-          console.log(
-            `  [${modelo}] falló tras ${INTENTOS_POR_MODELO} intentos. Probando siguiente modelo...`
-          );
-        }
+        console.log(`  [${modelo}] no disponible. Probando siguiente...`);
       }
     }
   }
 
   throw new Error(
-    `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
+    `Todos los modelos fallaron tras ${RONDAS} rondas. Último error: ${String(ultimoError)}`
   );
 }

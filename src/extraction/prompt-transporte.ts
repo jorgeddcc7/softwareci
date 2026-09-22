@@ -150,7 +150,11 @@ Los campos "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" sí apli
 Devuelve "tipo_documento": "cmr".
 Los campos "nombre_buque", "numero_viaje", "contenedores", "aerolinea", "numero_vuelo", "fecha_vuelo" y "peso_cobrable" no aplican a un CMR: márcalos como "no_aplicable".
 Los campos "matricula_vehiculo", "nombre_transportista_carretera" y "fecha_carga" sí aplican.
-En un CMR, el "puerto_carga" es el lugar de carga (origen) y el "puerto_descarga" es el lugar de descarga (destino).`;
+En un CMR:
+- "puerto_carga" ES el lugar de carga (sección "LUGAR DE CARGA" o "Place of Loading").
+- "puerto_descarga" ES el lugar de descarga (sección "LUGAR DE DESCARGA" o "Place of Delivery").
+- "ciudad_carga" y "ciudad_descarga" son SOLO el nombre de la ciudad, sin país.
+- IMPORTANTE: aunque se llamen "puerto", en un CMR son lugares de carga y descarga por carretera. SIEMPRE debes rellenarlos con los valores que aparezcan.`;
   } else {
     instruccionTipo = `Debes DETECTAR el tipo de documento de transporte:
 - Si es un BILL OF LADING marítimo, devuelve "tipo_documento": "bill_of_lading".

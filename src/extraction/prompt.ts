@@ -160,6 +160,16 @@ ESTRUCTURA DEL JSON DE SALIDA:
       "peso_neto": <CampoMagnitud>,
       "peso_bruto": <CampoMagnitud>
     }
+  ],
+  "descripciones_evaluadas": [
+    {
+      "indice_linea": 0,
+      "descripcion": "...",
+      "es_especifica": true,
+      "motivo": "...",
+      "sugerencia": "",
+      "confianza": "alta"
+    }
   ]
 }
 
@@ -209,6 +219,37 @@ FORMAS DE CADA TIPO DE CAMPO:
   "nota": <string>,
   "estado": "extraido" | "no_localizado" | "ilegible" | "ambiguo" | "no_aplicable"
 }
+
+ADEMÁS, debes evaluar la especificidad de cada línea de la factura y devolver un array adicional llamado "descripciones_evaluadas".
+
+Una descripción es SUFICIENTEMENTE ESPECÍFICA si incluye al menos 2 de: naturaleza del producto, composición/material, uso/función, modelo/referencia, características técnicas medibles, marca reconocible.
+
+Una descripción es GENÉRICA si solo indica categoría amplia ("repuestos", "mercancía", "productos"), usa términos vagos ("varios", "diversos") o no permite identificar qué es el producto.
+
+Para cada línea, devuelve un elemento con:
+{
+  "indice_linea": <número de línea, empezando en 0>,
+  "descripcion": <la descripción evaluada>,
+  "es_especifica": <true o false>,
+  "motivo": <explicación breve>,
+  "sugerencia": <cómo mejorarla si es genérica, vacío si no>,
+  "confianza": "alta" | "media" | "baja"
+}
+
+RECORDATORIO FINAL IMPORTANTE:
+
+Antes de devolver el JSON, verifica que has extraído TODOS estos campos en CADA línea del array "lineas":
+- numero_linea
+- descripcion_comercial
+- codigo_hs (buscarlo aunque esté en columna separada o pequeño)
+- pais_origen (buscarlo como "Origin", "Country of Origin", "Made in", o junto a la descripción)
+- cantidad
+- unidad_comercial
+- precio_unitario
+- valor_linea
+
+Si un campo no aparece en el documento, devuélvelo con valor = null, estado = "no_localizado". NO lo omitas.
+Presta especial atención a "pais_origen": muchas facturas lo indican al lado de la descripción o en una columna específica. Búscalo activamente antes de marcarlo como no_localizado.
 
 Devuelve SOLO el JSON. Nada más.`;
 }
