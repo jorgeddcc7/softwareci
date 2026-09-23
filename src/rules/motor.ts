@@ -60,8 +60,19 @@ function normalizarTexto(texto: string): string {
     .trim();
 }
 
+function normalizarReferencia(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
 function textosEquivalentes(a: string, b: string): boolean {
-  return normalizarTexto(a) === normalizarTexto(b);
+  if (normalizarTexto(a) === normalizarTexto(b)) return true;
+  if (normalizarReferencia(a) === normalizarReferencia(b)) return true;
+  return false;
 }
 
 function numerosDentroDeToleranciaPorcentual(
