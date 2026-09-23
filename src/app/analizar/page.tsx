@@ -1,7 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import Link from "next/link";
+import { InformeDocumento } from "./informe-pdf";
+
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false }
+);
 
 interface Validacion {
   regla: string;
@@ -48,6 +55,7 @@ export default function AnalizarPage() {
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preparadoPor, setPreparadoPor] = useState("");
 
   async function handleAnalizar() {
     if (!factura || !packing) {
@@ -210,7 +218,29 @@ export default function AnalizarPage() {
           </div>
         )}
 
-        {resultado && <MostrarResultado resultado={resultado} />}
+        {resultado && (
+          <>
+            <div className="mt-6 p-4 bg-surface border border-border rounded-lg">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Preparado por (opcional)
+              </label>
+              <input
+                type="text"
+                value={preparadoPor}
+                onChange={(e) => setPreparadoPor(e.target.value)}
+                placeholder="Tu nombre o el de tu empresa"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
+              />
+              <div className="mt-4">
+                <BotonDescargaInforme
+                  resultado={resultado}
+                  preparadoPor={preparadoPor}
+                />
+              </div>
+            </div>
+            <MostrarResultado resultado={resultado} />
+          </>
+        )}
       </main>
     </div>
   );
@@ -459,5 +489,49 @@ function TipoOpcion({
     >
       {etiqueta}
     </button>
+  );
+}
+
+function BotonDescargaInforme({
+  resultado,
+  preparadoPor,
+}: {
+  resultado: ResultadoAnalisis;
+  preparadoPor: string;
+}) {
+  const datos = {
+    numeroFactura: resultado.factura.numero ?? "—",
+    numeroPacking: resultado.packing.numero ?? "—",
+    numeroTransporte: resultado.transporte?.numero ?? null,
+    tipoTransporte:
+      resultado.transporte?.tipo === "air_waybill"
+        ? "AWB"
+        : resultado.transporte?.tipo === "cmr"
+          ? "CMR"
+          : resultado.transporte?.tipo === "bill_of_lading"
+            ? "B/L"
+            : null,
+    ruta:
+      resultado.transporte?.puerto_carga &&
+      resultado.transporte?.puerto_descarga
+        ? `${resultado.transporte.puerto_carga} -> ${resultado.transporte.puerto_descarga}`
+        : null,
+    veredicto: resultado.resultado_global,
+    validaciones: resultado.validaciones,
+    preparadoPor: preparadoPor || undefined,
+  };
+
+  const nombreArchivo = `informe-${resultado.factura.numero ?? "operacion"}.pdf`;
+
+  return (
+    <PDFDownloadLink
+      document={<InformeDocumento datos={datos} />}
+      fileName={nombreArchivo}
+      className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
+    >
+      {({ loading }) =>
+        loading ? "Generando informe..." : "Descargar informe PDF"
+      }
+    </PDFDownloadLink>
   );
 }
