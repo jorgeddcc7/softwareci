@@ -110,19 +110,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos de Comercio Exterior · Prototipo v0.1</p>
-          <p>
-            ¿Comentarios o sugerencias?{" "}
+          <p>Controlador de Documentos · Prototipo v0.1</p>
+          <div className="flex flex-wrap gap-4 items-center justify-center">
+            <Link href="/faq" className="hover:text-foreground transition-colors">
+              FAQ
+            </Link>
+            <Link href="/aviso-legal" className="hover:text-foreground transition-colors">
+              Aviso legal
+            </Link>
+            <Link href="/privacidad" className="hover:text-foreground transition-colors">
+              Privacidad
+            </Link>
             <a
               href="mailto:calculaincoterms@gmail.com"
               className="text-primary hover:text-primary-hover transition-colors"
             >
-              Escríbenos
+              Contacto
             </a>
-          </p>
+          </div>
         </div>
       </footer>
     </div>

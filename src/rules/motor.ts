@@ -149,7 +149,6 @@ export interface ResultadoMotor {
 /**
  * INV-PL-001: El número de factura referenciado en el packing list
  * coincide con el número de factura.
- *
  * Fallback: si el packing list no tiene numero_factura_referencia pero
  * su numero_documento coincide con la factura, se considera OK.
  */
@@ -1241,7 +1240,6 @@ function contienePalabraGenerica(descripcion: string): string | null {
 
 /**
  * INV-020: La descripción de la mercancía no es demasiado genérica.
- *
  * Este paso es determinista (lista negra). Para las descripciones que
  * superan la lista negra pero podrían ser genéricas, se devuelven en
  * "descripciones_a_evaluar" para que se evalúen con IA después.
@@ -1307,7 +1305,6 @@ function reglaINV_020(factura: FacturaComercial): {
 /**
  * INV-021: La descripción de la mercancía no es demasiado genérica
  * (evaluación con IA para las que no detecta la lista negra).
- *
  * Esta función recibe los resultados de la evaluación con IA y genera
  * las validaciones correspondientes.
  */
@@ -1759,6 +1756,14 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
     "Confirmar el consignatario correcto. Debe coincidir entre factura y packing list.",
   "INV-PL-005":
     "Revisar las fechas de emisión. Si hay diferencia significativa, confirmar la secuencia real de los documentos.",
+  "INV-PL-006":
+    "Confirmar si el comprador y el consignatario están en países distintos por una operación triangular o por un error. Documentar la relación si es correcta.",
+  "INV-PL-007":
+    "Confirmar si el vendedor y el expedidor son entidades distintas (intermediario, filial) o si hay un error en los documentos.",
+  "INV-PL-014":
+    "Revisar el formato del código HS. Debe ser numérico y tener 6, 8 o 10 dígitos.",
+  "INV-PL-015":
+    "Añadir el código HS en cada línea de la factura. Es un dato requerido por la aduana para la clasificación arancelaria.",
 
   // Líneas y cantidades
   "INV-PL-010":
@@ -1827,10 +1832,14 @@ export const ACCIONES_SUGERIDAS: Record<string, string> = {
     "Unificar el tipo de bultos declarado entre packing list y documento de transporte.",
   "TRANS-001":
     "Verificar con el transitario o transportista que el destino del envío es el correcto. Un destino equivocado puede generar retenciones, reenvíos y costes adicionales.",
+  "TRANS-002":
+    "Verificar con el transportista que el puerto/aeropuerto de carga coincide con la ubicación del expedidor. Puede ser un punto de consolidación, pero conviene confirmarlo.",
 
   // Campos obligatorios
   "GEN-070":
     "Añadir el campo obligatorio al documento antes del despacho.",
+  "BL-003":
+    "Verificar el peso bruto declarado en los contenedores y en la carga del documento de transporte. Deben coincidir.",
 };
 
 /** TRANS-001: El puerto/aeropuerto de descarga coincide con el país del consignatario. Detecta errores donde el destino logístico no coincide con el país o ciudad del consignatario de la operación. */
@@ -1867,7 +1876,7 @@ function reglaTRANS_001(
 
   return crearValidacion(
     "TRANS-001",
-    "La ciudad de destino del documento de transporte coincide con la ciudad del consignatario",
+    "Ciudad de destino del documento de transporte vs ciudad del consignatario",
     coincide ? "ok" : "discrepancia",
     "alta",
     ["factura_comercial", "documento_transporte"],
@@ -1885,7 +1894,6 @@ function reglaTRANS_001(
 /**
  * INV-070: Si el Incoterm incluye flete y/o seguro (CIF, CIP, CFR, CPT),
  * la factura debe desglosar el valor de la mercancía y los cargos.
- *
  * La aduana necesita ver el desglose FOB + flete + seguro para
  * verificar la valoración aduanera.
  */
@@ -2012,6 +2020,275 @@ function reglaINV_080(factura: FacturaComercial): Validacion {
   );
 }
 
+/**
+ * TRANS-002: La ciudad de carga del documento de transporte coincide
+ * con la ciudad del expedidor (o del vendedor).
+ * Detecta errores donde la mercancía se carga en una ciudad distinta
+ * a la del exportador.
+ */
+function reglaTRANS_002(
+  factura: FacturaComercial,
+  packing: PackingList,
+  transporte: DocumentoTransporte
+): Validacion {
+  const ciudadExpedidor =
+    packing.expedidor.ciudad.valor ||
+    factura.vendedor.ciudad.valor ||
+    packing.expedidor.pais.valor;
+
+  const ciudadCarga = transporte.ciudad_carga.valor;
+
+  if (!ciudadExpedidor || !ciudadCarga) {
+    return crearValidacion(
+      "TRANS-002",
+      "La ciudad de carga coincide con la ciudad del expedidor",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "documento_transporte"],
+      ["ciudad_carga", "expedidor.ciudad"],
+      { ciudad_expedidor: ciudadExpedidor, ciudad_carga: ciudadCarga },
+      "No se puede comprobar porque falta la ciudad del expedidor o la ciudad de carga."
+    );
+  }
+
+  const coincide =
+    textosEquivalentes(ciudadExpedidor, ciudadCarga) ||
+    normalizarReferencia(ciudadExpedidor) === normalizarReferencia(ciudadCarga);
+
+  return crearValidacion(
+    "TRANS-002",
+    "La ciudad de carga coincide con la ciudad del expedidor",
+    coincide ? "ok" : "discrepancia",
+    "media",
+    ["factura_comercial", "documento_transporte"],
+    ["ciudad_carga", "expedidor.ciudad"],
+    { ciudad_expedidor: ciudadExpedidor, ciudad_carga: ciudadCarga },
+    coincide
+      ? ""
+      : `El expedidor está en "${ciudadExpedidor}", pero la carga sale desde "${ciudadCarga}". Verificar que sea correcto (puede ser un puerto intermedio, pero conviene confirmarlo).`
+  );
+}
+
+/**
+ * INV-PL-006: El país del comprador y del consignatario coinciden.
+ * Detecta errores donde el comprador y el destinatario final están
+ * en países distintos sin justificación aparente.
+ */
+function reglaINV_PL_006(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const paisComprador =
+    factura.comprador.pais.valor || packing.destinatario.pais.valor;
+  const paisConsignatario =
+    factura.consignatario.pais.valor || packing.consignatario.pais.valor;
+
+  if (!paisComprador || !paisConsignatario) {
+    return crearValidacion(
+      "INV-PL-006",
+      "El país del comprador coincide con el país del consignatario",
+      "no_comprobable",
+      "media",
+      ["factura_comercial", "packing_list"],
+      ["comprador.pais", "consignatario.pais"],
+      { comprador: paisComprador, consignatario: paisConsignatario },
+      "No se puede comprobar porque falta el país en alguno de los documentos."
+    );
+  }
+
+  const coincide = textosEquivalentes(paisComprador, paisConsignatario);
+
+  return crearValidacion(
+    "INV-PL-006",
+    "El país del comprador coincide con el país del consignatario",
+    coincide ? "ok" : "discrepancia",
+    "media",
+    ["factura_comercial", "packing_list"],
+    ["comprador.pais", "consignatario.pais"],
+    { comprador: paisComprador, consignatario: paisConsignatario },
+    coincide
+      ? ""
+      : `El comprador está en "${paisComprador}", pero el consignatario está en "${paisConsignatario}". Verificar si es correcto (puede ser una operación triangular).`
+  );
+}
+
+/**
+ * BL-003: El peso bruto total declarado en los contenedores coincide
+ * con el peso bruto de la carga del B/L.
+ */
+function reglaBL_003(transporte: DocumentoTransporte): Validacion {
+  // Solo aplica a B/L con contenedores
+  if (transporte.contenedores.length === 0) {
+    return crearValidacion(
+      "BL-003",
+      "El peso bruto de los contenedores coincide con el de la carga",
+      "no_comprobable",
+      "media",
+      ["documento_transporte"],
+      ["contenedores[].peso_bruto", "carga.peso_bruto"],
+      {},
+      "El documento de transporte no lista contenedores individuales."
+    );
+  }
+
+  let sumaContenedores = 0;
+  let tieneAlguno = false;
+  for (const cont of transporte.contenedores) {
+    if (cont.peso_bruto.valor !== null) {
+      sumaContenedores += cont.peso_bruto.valor;
+      tieneAlguno = true;
+    }
+  }
+
+  const pesoCarga = transporte.carga.peso_bruto.valor;
+
+  if (!tieneAlguno || pesoCarga === null) {
+    return crearValidacion(
+      "BL-003",
+      "El peso bruto de los contenedores coincide con el de la carga",
+      "no_comprobable",
+      "media",
+      ["documento_transporte"],
+      ["contenedores[].peso_bruto", "carga.peso_bruto"],
+      { suma_contenedores: tieneAlguno ? sumaContenedores : null, peso_carga: pesoCarga },
+      "No se puede comprobar porque falta el peso en los contenedores o en la carga."
+    );
+  }
+
+  if (numerosDentroDeToleranciaPorcentual(sumaContenedores, pesoCarga, 0.01)) {
+    return crearValidacion(
+      "BL-003",
+      "El peso bruto de los contenedores coincide con el de la carga",
+      "ok",
+      "media",
+      ["documento_transporte"],
+      ["contenedores[].peso_bruto", "carga.peso_bruto"],
+      { suma_contenedores: sumaContenedores, peso_carga: pesoCarga },
+      ""
+    );
+  }
+
+  const diferencia = Math.abs(sumaContenedores - pesoCarga);
+  return crearValidacion(
+    "BL-003",
+    "El peso bruto de los contenedores coincide con el de la carga",
+    "discrepancia",
+    "alta",
+    ["documento_transporte"],
+    ["contenedores[].peso_bruto", "carga.peso_bruto"],
+    { suma_contenedores: sumaContenedores, peso_carga: pesoCarga },
+    `La suma de los pesos brutos de los contenedores (${formatearNumero(sumaContenedores)} kg) no coincide con el peso bruto declarado en la carga (${formatearNumero(pesoCarga)} kg). Diferencia de ${formatearNumero(diferencia)} kg.`
+  );
+}
+
+/**
+ * INV-PL-015: El código HS está indicado en la factura. Muchas aduanas lo requieren. Si falta, puede generar retenciones o requerimientos.
+ */
+function reglaINV_PL_015(factura: FacturaComercial): Validacion[] {
+  const validaciones: Validacion[] = [];
+
+  if (factura.lineas.length === 0) {
+    return validaciones;
+  }
+
+  for (let i = 0; i < factura.lineas.length; i++) {
+    const linea = factura.lineas[i];
+    if (!tieneTexto(linea.codigo_hs)) {
+      validaciones.push(
+        crearValidacion(
+          "INV-PL-015",
+          `Código HS ausente en la línea ${i + 1} de la factura`,
+          "discrepancia",
+          "media",
+          ["factura_comercial"],
+          [`lineas[${i}].codigo_hs`],
+          { campo: `lineas[${i}].codigo_hs`, estado: linea.codigo_hs.estado },
+          `La línea ${i + 1} ("${linea.descripcion_comercial.valor ?? ""}") no indica el código HS. Muchas aduanas lo requieren para la clasificación arancelaria.`
+        )
+      );
+    }
+  }
+
+  return validaciones;
+}
+
+/**
+ * INV-PL-014: El código HS de la factura tiene un formato válido.
+ * Los códigos HS estándar tienen 6, 8 o 10 dígitos numéricos.
+ * Si tiene letras, longitud rara o caracteres extraños, avisar.
+ */
+function reglaINV_PL_014(factura: FacturaComercial): Validacion[] {
+  const validaciones: Validacion[] = [];
+
+  for (let i = 0; i < factura.lineas.length; i++) {
+    const linea = factura.lineas[i];
+    const codigo = linea.codigo_hs.valor;
+
+    if (!codigo) continue;
+
+    const codigoLimpio = codigo.replace(/[.\s-]/g, "");
+    const esNumerico = /^\d+$/.test(codigoLimpio);
+    const longitud = codigoLimpio.length;
+    const longitudValida = [6, 8, 10].includes(longitud);
+
+    if (!esNumerico || !longitudValida) {
+      validaciones.push(
+        crearValidacion(
+          "INV-PL-014",
+          `Formato del código HS en línea ${i + 1}`,
+          "discrepancia",
+          "media",
+          ["factura_comercial"],
+          [`lineas[${i}].codigo_hs`],
+          { codigo, longitud, es_numerico: esNumerico },
+          `El código HS "${codigo}" de la línea ${i + 1} no tiene un formato estándar. Los códigos HS suelen tener 6, 8 o 10 dígitos numéricos.`
+        )
+      );
+    }
+  }
+
+  return validaciones;
+}
+
+/**
+ * INV-PL-007: El país del vendedor y del expedidor coinciden. Si el vendedor y el expedidor están en países distintos, puede ser una operación triangular o un error.
+ */
+function reglaINV_PL_007(
+  factura: FacturaComercial,
+  packing: PackingList
+): Validacion {
+  const paisVendedor = factura.vendedor.pais.valor;
+  const paisExpedidor = packing.expedidor.pais.valor;
+
+  if (!paisVendedor || !paisExpedidor) {
+    return crearValidacion(
+      "INV-PL-007",
+      "El país del vendedor coincide con el del expedidor",
+      "no_comprobable",
+      "baja",
+      ["factura_comercial", "packing_list"],
+      ["vendedor.pais", "expedidor.pais"],
+      { vendedor: paisVendedor, expedidor: paisExpedidor },
+      "No se puede comprobar porque falta el país en alguno de los documentos."
+    );
+  }
+
+  const coincide = textosEquivalentes(paisVendedor, paisExpedidor);
+
+  return crearValidacion(
+    "INV-PL-007",
+    "El país del vendedor coincide con el del expedidor",
+    coincide ? "ok" : "discrepancia",
+    "baja",
+    ["factura_comercial", "packing_list"],
+    ["vendedor.pais", "expedidor.pais"],
+    { vendedor: paisVendedor, expedidor: paisExpedidor },
+    coincide
+      ? ""
+      : `El vendedor está en "${paisVendedor}", pero el expedidor en "${paisExpedidor}". Verificar si es correcto (puede ser una operación con intermediario).`
+  );
+}
+
 // Orquestador
 
 export function ejecutarReglas(
@@ -2048,6 +2325,10 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_PL_052(factura, packing));
   validaciones.push(reglaINV_PL_061(factura, packing));
   validaciones.push(...reglaGEN_070(factura, packing));
+  validaciones.push(reglaINV_PL_006(factura, packing));
+  validaciones.push(reglaINV_PL_007(factura, packing));
+  validaciones.push(...reglaINV_PL_015(factura));
+  validaciones.push(...reglaINV_PL_014(factura));
 
   // Reglas con documento de transporte (solo si existe)
   if (transporte) {
@@ -2061,6 +2342,8 @@ export function ejecutarReglas(
     validaciones.push(reglaPL_BL_002(packing, transporte));
     validaciones.push(reglaPL_BL_003(packing, transporte));
     validaciones.push(reglaTRANS_001(factura, packing, transporte));
+    validaciones.push(reglaTRANS_002(factura, packing, transporte));
+    validaciones.push(reglaBL_003(transporte));
   }
 
   const advertencias = reglaGEN_071(factura, packing);
