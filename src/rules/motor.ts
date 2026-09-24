@@ -140,6 +140,7 @@ export interface ResultadoMotor {
     valor_linea: number | null;
     moneda: string | null;
   }>;
+  lineas_detectadas_lista_negra: number[];
 }
 
 // ------------------------------------------------------------
@@ -1257,6 +1258,7 @@ function reglaINV_020(factura: FacturaComercial): {
     valor_linea: number | null;
     moneda: string | null;
   }>;
+  indices_detectados: number[];
 } {
   const validaciones: Validacion[] = [];
   const descripciones_a_evaluar: Array<{
@@ -1266,6 +1268,7 @@ function reglaINV_020(factura: FacturaComercial): {
     valor_linea: number | null;
     moneda: string | null;
   }> = [];
+  const indices_detectados: number[] = [];
 
   for (let i = 0; i < factura.lineas.length; i++) {
     const linea = factura.lineas[i];
@@ -1291,6 +1294,8 @@ function reglaINV_020(factura: FacturaComercial): {
           `La descripción "${descripcion}" contiene la palabra genérica "${palabraGenerica}". Las descripciones genéricas pueden generar sospecha o retención en aduana. Se recomienda detallar más: composición, uso, modelo, referencia.`
         )
       );
+      // Marcar esta línea como detectada por lista negra
+      indices_detectados.push(i);
     } else {
       // No contiene palabras de la lista negra → pasa a evaluación con IA
       descripciones_a_evaluar.push({
@@ -1303,7 +1308,7 @@ function reglaINV_020(factura: FacturaComercial): {
     }
   }
 
-  return { validaciones, descripciones_a_evaluar };
+  return { validaciones, descripciones_a_evaluar, indices_detectados };
 }
 
 /**
@@ -2314,6 +2319,8 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_PL_003(factura, packing));
   validaciones.push(reglaINV_PL_004(factura, packing));
   validaciones.push(reglaINV_PL_005(factura, packing));
+  validaciones.push(reglaINV_PL_006(factura, packing));
+  validaciones.push(reglaINV_PL_007(factura, packing));
   validaciones.push(reglaINV_PL_010(factura, packing));
   validaciones.push(reglaINV_PL_011(factura, packing));
   validaciones.push(reglaINV_PL_013(factura, packing));
@@ -2322,6 +2329,8 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_PL_040(factura, packing));
   validaciones.push(reglaINV_PL_041(factura, packing));
   validaciones.push(...reglaINV_PL_042(factura, packing));
+  validaciones.push(...reglaINV_PL_014(factura));
+  validaciones.push(...reglaINV_PL_015(factura));
   validaciones.push(reglaINV_050(factura));
   validaciones.push(reglaINV_051(factura));
   validaciones.push(reglaINV_070(factura));
@@ -2329,12 +2338,8 @@ export function ejecutarReglas(
   validaciones.push(reglaINV_PL_052(factura, packing));
   validaciones.push(reglaINV_PL_061(factura, packing));
   validaciones.push(...reglaGEN_070(factura, packing));
-  validaciones.push(reglaINV_PL_006(factura, packing));
-  validaciones.push(reglaINV_PL_007(factura, packing));
-  validaciones.push(...reglaINV_PL_015(factura));
-  validaciones.push(...reglaINV_PL_014(factura));
 
-  // Reglas con documento de transporte (solo si existe)
+  // Reglas con documento de transporte
   if (transporte) {
     validaciones.push(reglaINV_BL_001(factura, transporte));
     validaciones.push(reglaINV_BL_002(factura, transporte));
@@ -2359,5 +2364,10 @@ export function ejecutarReglas(
     }
   }
 
-  return { validaciones, advertencias, descripciones_a_evaluar };
+  return {
+    validaciones,
+    advertencias,
+    descripciones_a_evaluar,
+    lineas_detectadas_lista_negra: inv020.indices_detectados,
+  };
 }

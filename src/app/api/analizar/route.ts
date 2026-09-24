@@ -113,14 +113,19 @@ export async function POST(request: NextRequest) {
 
     // Motor de reglas
     console.log("Ejecutando motor de reglas...");
-    const { validaciones, advertencias } = ejecutarReglas(
-      factura,
-      packing,
-      transporte
-    );
+    const {
+      validaciones,
+      advertencias,
+      lineas_detectadas_lista_negra,
+    } = ejecutarReglas(factura, packing, transporte);
 
     // Nivel 2: usamos las evaluaciones que ya vienen en el JSON de la factura
-    const validacionesINV021 = generarValidacionesINV_021(descripcionesEvaluadas);
+    // Filtrar: solo evaluar con INV-021 las líneas que NO estén ya detectadas por lista negra
+    const descripcionesFiltradas = descripcionesEvaluadas.filter(
+      (d) => !lineas_detectadas_lista_negra.includes(d.indice_linea)
+    );
+
+    const validacionesINV021 = generarValidacionesINV_021(descripcionesFiltradas);
     for (const v of validacionesINV021) {
       v.accion_sugerida = ACCIONES_SUGERIDAS[v.regla] ?? "";
     }
