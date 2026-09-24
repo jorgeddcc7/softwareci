@@ -107,6 +107,7 @@ INSTRUCCIONES ESPECÍFICAS PARA FACTURA:
 - "codigo_hs" debe aparecer impreso en la factura. Si no aparece, no_localizado.
 - "pais_origen" es el país de fabricación/origen de la mercancía, NO el país
   del vendedor ni de la dirección de envío.
+- "pais_origen_global": es el país de origen declarado a nivel GLOBAL en la factura (no por línea). Suele aparecer al pie del documento como "Origin: China", "Country of Origin: China", "País de origen: China". Si aparece, extráelo aquí. Si solo aparece por línea, déjalo como no_localizado.
 - "ciudad": extrae SOLO el nombre de la ciudad de cada parte (ej: "Shanghai", "Barcelona"). NO incluyas país, provincia ni código postal.
 - "es_proforma": detecta si el documento es una FACTURA PROFORMA en lugar de una factura comercial.
   · Si el título dice "PROFORMA", "Proforma Invoice", "Factura Proforma" → valor = "true".
@@ -118,6 +119,7 @@ ESTRUCTURA DEL JSON DE SALIDA:
 {
   "tipo_documento": "factura_comercial",
   "es_proforma": <CampoTexto>,
+  "pais_origen_global": <CampoTexto>,
   "numero_factura": <CampoTexto>,
   "fecha_emision": <CampoTexto>,
   "vendedor": <Parte>,

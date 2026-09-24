@@ -798,23 +798,27 @@ function reglaGEN_070(
     }
   }
 
-  // País de origen por línea (obligatorio en operaciones de importación)
-  for (let i = 0; i < factura.lineas.length; i++) {
-    const linea = factura.lineas[i];
-    if (!tieneTexto(linea.pais_origen)) {
-      validaciones.push(
-        crearValidacion(
-          "GEN-070",
-          `País de origen ausente en línea ${i + 1} de la factura`,
-          "discrepancia",
-          "media",
-          ["factura_comercial"],
-          [`lineas[${i}].pais_origen`],
-          { campo: `lineas[${i}].pais_origen`, estado: linea.pais_origen.estado },
-          `La línea ${i + 1} ("${linea.descripcion_comercial.valor ?? ""}") no indica el país de origen. Es un dato relevante para la valoración y el régimen arancelario.`
-        )
-      );
-    }
+  // País de origen: solo marcar discrepancia si NO hay origen global
+  // Y NINGUNA línea tiene país de origen.
+  const tieneOrigenGlobal = tieneTexto(factura.pais_origen_global);
+  const lineasSinOrigen = factura.lineas.filter(
+    (l) => !tieneTexto(l.pais_origen)
+  );
+
+  if (!tieneOrigenGlobal && lineasSinOrigen.length === factura.lineas.length && factura.lineas.length > 0) {
+    // Ni origen global ni origen por línea: discrepancia única
+    validaciones.push(
+      crearValidacion(
+        "GEN-070",
+        "País de origen ausente en la factura",
+        "discrepancia",
+        "media",
+        ["factura_comercial"],
+        ["pais_origen_global", "lineas[].pais_origen"],
+        { pais_origen_global: null, lineas_sin_origen: lineasSinOrigen.length },
+        "La factura no indica el país de origen de la mercancía ni a nivel global ni por línea. Es un dato relevante para la valoración y el régimen arancelario."
+      )
+    );
   }
 
   const obligatoriosPacking: Array<[string, CampoTexto | CampoNumero | CampoMagnitud]> = [
