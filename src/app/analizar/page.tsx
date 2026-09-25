@@ -103,11 +103,9 @@ export default function AnalizarPage() {
       {/* Header */}
       <header className="border-b border-border bg-surface">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CD</span>
-            </div>
-            <span className="font-semibold text-foreground text-[15px]">
+          <Link href="/" className="flex items-center gap-1.5">
+            <img src="/logocd.png" alt="Controlador de Documentos" className="w-11 h-11 rounded-lg" />
+            <span className="font-semibold text-foreground text-base">
               Controlador de Documentos
             </span>
           </Link>
@@ -390,12 +388,7 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
       )}
 
       {noComprobables.length > 0 && (
-        <BloqueValidaciones
-          titulo={`No comprobables (${noComprobables.length})`}
-          color="#475569"
-          bgColor="#F1F5F9"
-          validaciones={noComprobables}
-        />
+        <BloqueNoComprobables validaciones={noComprobables} />
       )}
 
       {resultado.advertencias.length > 0 && (
@@ -533,5 +526,54 @@ function BotonDescargaInforme({
         loading ? "Generando informe..." : "Descargar informe PDF"
       }
     </PDFDownloadLink>
+  );
+}
+
+function BloqueNoComprobables({
+  validaciones,
+}: {
+  validaciones: Validacion[];
+}) {
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <div className="mb-4 bg-surface border border-border rounded-lg overflow-hidden">
+      <button
+        onClick={() => setAbierto(!abierto)}
+        className="w-full px-5 py-3 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+      >
+        <div>
+          <p className="font-semibold text-slate-600 text-sm">
+            Reglas no comprobables ({validaciones.length})
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            No son errores: son comprobaciones que no se han podido hacer
+            por falta de información en los documentos.
+          </p>
+        </div>
+        <span className="text-slate-400 text-lg">
+          {abierto ? "−" : "+"}
+        </span>
+      </button>
+      {abierto && (
+        <div className="divide-y divide-border border-t border-border">
+          {validaciones.map((v, i) => (
+            <div key={i} className="px-5 py-4">
+              <p className="font-medium text-foreground text-sm">
+                <span className="font-mono text-xs text-muted mr-2">
+                  [{v.regla}]
+                </span>
+                {v.descripcion}
+              </p>
+              {v.nota && (
+                <p className="text-sm text-muted mt-1.5 leading-relaxed">
+                  {v.nota}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

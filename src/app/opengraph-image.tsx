@@ -41,11 +41,28 @@ export default async function Image() {
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: "28px",
+              fontSize: "26px",
               fontWeight: 700,
+              letterSpacing: "-1px",
             }}
           >
             CD
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ marginLeft: "4px" }}
+            >
+              <circle cx="12" cy="12" r="10" fill="white" />
+              <path
+                d="M8 12.5L11 15.5L16 9.5"
+                stroke="#2563EB"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <span
             style={{

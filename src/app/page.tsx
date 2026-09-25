@@ -6,11 +6,9 @@ export default function HomePage() {
       {/* Header */}
       <header className="border-b border-border bg-surface">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CD</span>
-            </div>
-            <span className="font-semibold text-foreground text-[15px]">
+          <div className="flex items-center gap-1.5">
+            <img src="/logocd.png" alt="Controlador de Documentos" className="w-11 h-11 rounded-lg" />
+            <span className="font-semibold text-foreground text-base">
               Controlador de Documentos
             </span>
           </div>
