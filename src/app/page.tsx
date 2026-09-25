@@ -112,6 +112,11 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
           <p>Controlador de Documentos · Prototipo v0.1</p>
           <div className="flex flex-wrap gap-4 items-center justify-center">
+            {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
+              <Link href="/precios" className="hover:text-foreground transition-colors">
+                Precios
+              </Link>
+            )}
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
             </Link>
