@@ -84,7 +84,35 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-base font-semibold text-foreground mb-2">
-              3. Proveedores de servicios
+              3. Cookies y tecnologías de seguimiento
+            </h2>
+            <p>
+              Utilizamos cookies propias y de terceros para el funcionamiento
+              básico de la web y para analizar cómo se usa. Al entrar por
+              primera vez, te mostramos un banner donde puedes aceptar,
+              rechazar o configurar las cookies.
+            </p>
+            <p className="mt-3">
+              <strong>Cookies esenciales:</strong> necesarias para el
+              funcionamiento básico de la web. No se pueden desactivar.
+            </p>
+            <p className="mt-3">
+              <strong>Cookies analíticas (Google Analytics 4):</strong> nos
+              permiten entender cuántas personas visitan la web, qué páginas
+              ven y cómo navegan. Esta información es agregada y anónima. Solo
+              se activan si aceptas esta categoría. La dirección IP se anonimiza
+              antes de ser almacenada.
+            </p>
+            <p className="mt-3">
+              Puedes cambiar tu decisión en cualquier momento borrando las
+              cookies de tu navegador o desde la configuración del mismo. Al
+              volver a entrar, te preguntaremos de nuevo.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-semibold text-foreground mb-2">
+              4. Proveedores de servicios
             </h2>
             <p>
               Para ofrecer el servicio utilizamos los siguientes proveedores,
@@ -100,12 +128,17 @@ export default function PrivacidadPage() {
                 Utilizamos el modo de pago, que garantiza que los datos no se
                 usan para entrenar modelos.
               </li>
+              <li>
+                <strong>Google LLC (Google Analytics 4)</strong> — servicio de
+                analítica web. Solo se activa si aceptas las cookies
+                analíticas. La IP se anonimiza.
+              </li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-base font-semibold text-foreground mb-2">
-              4. Datos personales
+              5. Datos personales
             </h2>
             <p>
               No solicitamos registro, no pedimos nombre, email ni teléfono, y
@@ -116,7 +149,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-base font-semibold text-foreground mb-2">
-              5. Tus derechos
+              6. Tus derechos
             </h2>
             <p>
               Como usuario tienes derecho a acceder, rectificar, suprimir,
@@ -129,7 +162,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className="text-base font-semibold text-foreground mb-2">
-              6. Cambios en esta política
+              7. Cambios en esta política
             </h2>
             <p>
               Podemos actualizar esta política para reflejar cambios en el
