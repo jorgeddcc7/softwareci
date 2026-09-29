@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PlanButton } from "./plan-button";
 
 export const metadata: Metadata = {
   title: "Precios",
@@ -17,10 +18,11 @@ const PLANES = [
       "3 análisis gratuitos",
       "Factura + packing list",
       "Detección de incoherencias básicas",
-      "Sin registro",
+      "Sin tarjeta",
     ],
     cta: "Probar gratis",
     destacado: false,
+    priceId: null,
   },
   {
     nombre: "Despacho",
@@ -36,6 +38,7 @@ const PLANES = [
     ],
     cta: "Empezar",
     destacado: true,
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_DESPACHO ?? null,
   },
   {
     nombre: "Despacho Pro",
@@ -49,8 +52,9 @@ const PLANES = [
       "Informe PDF con tu marca",
       "Soporte prioritario",
     ],
-    cta: "Contactar",
+    cta: "Empezar",
     destacado: false,
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? null,
   },
 ];
 
@@ -135,15 +139,11 @@ export default async function PreciosPage({
                   </li>
                 ))}
               </ul>
-              <button
-                className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                  plan.destacado
-                    ? "bg-primary text-white hover:bg-primary-hover"
-                    : "bg-white border border-border text-foreground hover:border-primary"
-                }`}
-              >
-                {plan.cta}
-              </button>
+              <PlanButton
+                priceId={plan.priceId}
+                label={plan.cta}
+                destacado={plan.destacado}
+              />
             </div>
           ))}
         </div>
