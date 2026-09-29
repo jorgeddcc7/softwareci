@@ -39,8 +39,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/analizar");
-    router.refresh();
+    window.location.href = "/analizar";
   };
 
   if (success) {
