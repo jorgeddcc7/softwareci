@@ -14,7 +14,7 @@ const PLANES = [
     periodo: "gratis",
     descripcion: "Para probar la herramienta sin compromiso.",
     caracteristicas: [
-      "5 análisis gratuitos",
+      "3 análisis gratuitos",
       "Factura + packing list",
       "Detección de incoherencias básicas",
       "Sin registro",
@@ -54,7 +54,13 @@ const PLANES = [
   },
 ];
 
-export default function PreciosPage() {
+export default async function PreciosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ limit_reached?: string }>;
+}) {
+  const params = await searchParams;
+  const ocultarPlanGratis = params.limit_reached === "true";
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border bg-surface">
@@ -90,8 +96,14 @@ export default function PreciosPage() {
         </div>
 
         {/* Tarjetas de precios */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
-          {PLANES.map((plan, i) => (
+        <div
+          className={`grid gap-6 mb-16 ${
+            ocultarPlanGratis ? "md:grid-cols-2 max-w-2xl mx-auto" : "md:grid-cols-3"
+          }`}
+        >
+          {PLANES.filter(
+            (plan) => !(ocultarPlanGratis && plan.precio === "0")
+          ).map((plan, i) => (
             <div
               key={i}
               className={`relative p-8 rounded-xl border-2 transition-all ${

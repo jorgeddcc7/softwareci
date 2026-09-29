@@ -1,16 +1,30 @@
 import Link from "next/link";
+import { AuthStatus } from "./components/auth-status";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-surface">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center">
-          <div className="flex items-center gap-1.5">
-            <img src="/logocd.png" alt="Controlador de Documentos" className="w-11 h-11 rounded-lg" />
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-1.5">
+            <img
+              src="/logocd.png"
+              alt="Controlador de Documentos"
+              className="w-11 h-11 rounded-lg"
+            />
             <span className="font-semibold text-foreground text-base">
               Controlador de Documentos
             </span>
+          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/analizar"
+              className="text-sm text-muted hover:text-foreground transition-colors"
+            >
+              Analizar
+            </Link>
+            <AuthStatus />
           </div>
         </div>
       </header>

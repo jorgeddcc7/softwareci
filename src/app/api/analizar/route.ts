@@ -1,16 +1,15 @@
-// ============================================================
 // API Route: /api/analizar
 // ============================================================
-//
 // Procesa en llamadas específicas:
 //   1. Factura (prompt específico).
 //   2. Packing (prompt específico).
 //   3. Transporte (prompt específico, si existe).
 //   4. Descripciones genéricas (una por línea, en paralelo).
-//
-// Las 3 extracciones van EN PARALELO para reducir el tiempo.
-// Si Gemini falla, cae a OpenRouter con el PDF en base64.
-// ============================================================
+// Si NEXT_PUBLIC_AUTH_ENABLED=true:
+//   - Requiere usuario autenticado.
+//   - Comprueba contador de análisis gratis (3 de por vida).
+//   - Si hay suscripción activa, no cuenta.
+//   - Incrementa contador al terminar.
 
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
@@ -35,13 +34,11 @@ import {
   generarValidacionesINV_021,
   ACCIONES_SUGERIDAS,
 } from "@/rules/motor";
-import {
-  normalizarFactura,
-  normalizarPacking,
-  normalizarTransporte,
-} from "@/extraction/normalizar";
+import { createClient } from "@/utils/supabase/server";
 
 export const maxDuration = 300;
+
+const LIMITE_GRATIS = 3;
 
 function limpiarJson(texto: string): string {
   let limpio = texto.trim();
@@ -63,6 +60,76 @@ async function guardarTemporal(
 
 export async function POST(request: NextRequest) {
   try {
+    // ============================================================
+    // Comprobaciones de autenticación y límite (solo si auth activa)
+    // ============================================================
+    let userId: string | null = null;
+    let contadorActual = 0;
+    let tieneSuscripcionActiva = false;
+
+    if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
+      const supabase = await createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "Debes iniciar sesión para analizar documentos." },
+          { status: 401 }
+        );
+      }
+
+      userId = user.id;
+
+      // Leer perfil
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_status, analyses_count")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile) {
+        return NextResponse.json(
+          { error: "No se encontró tu perfil de usuario." },
+          { status: 500 }
+        );
+      }
+
+      contadorActual = profile.analyses_count ?? 0;
+      tieneSuscripcionActiva = profile.subscription_status === "active";
+
+      // Comprobar si ha subido transporte (solo pago)
+      const formDataCheck = await request.clone().formData();
+      const tieneTransporte = formDataCheck.get("transporte") !== null;
+
+      if (tieneTransporte && !tieneSuscripcionActiva) {
+        return NextResponse.json(
+          {
+            error:
+              "El análisis con documento de transporte requiere un plan de pago.",
+          },
+          { status: 402 }
+        );
+      }
+
+      // Si no tiene suscripción y ya gastó los análisis gratis → bloquear
+      if (!tieneSuscripcionActiva && contadorActual >= LIMITE_GRATIS) {
+        return NextResponse.json(
+          {
+            error:
+              "Has agotado tus 3 análisis gratuitos. Suscríbete para seguir usando la herramienta.",
+            code: "LIMIT_REACHED",
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    // ============================================================
+    // Análisis
+    // ============================================================
     const formData = await request.formData();
     const facturaFile = formData.get("factura") as File | null;
     const packingFile = formData.get("packing") as File | null;
@@ -83,7 +150,6 @@ export async function POST(request: NextRequest) {
         ? tipoTransporteRaw
         : "auto";
 
-    // Guardar en temporales
     const facturaBuffer = Buffer.from(await facturaFile.arrayBuffer());
     const rutaFactura = await guardarTemporal("factura.pdf", facturaBuffer);
 
@@ -96,7 +162,6 @@ export async function POST(request: NextRequest) {
       rutaTransporte = await guardarTemporal("transporte.pdf", transporteBuffer);
     }
 
-    // Extraer los 3 documentos EN PARALELO
     console.log("Extrayendo documentos en paralelo...");
 
     const extraerFacturaPromise = (async () => {
@@ -123,25 +188,16 @@ export async function POST(request: NextRequest) {
         })()
       : Promise.resolve(null);
 
-    const [facturaRaw, packingRaw, transporteRaw] = await Promise.all([
+    const [factura, packing, transporte] = await Promise.all([
       extraerFacturaPromise,
       extraerPackingPromise,
       extraerTransportePromise,
     ]);
 
-    // Normalizar: rellenar campos faltantes con valores por defecto
-    const factura = normalizarFactura(facturaRaw);
-    const packing = normalizarPacking(packingRaw);
-    const transporte = transporteRaw
-      ? normalizarTransporte(transporteRaw)
-      : null;
-
-    // Motor de reglas
     console.log("Ejecutando motor de reglas...");
     const { validaciones, advertencias, descripciones_a_evaluar } =
       ejecutarReglas(factura, packing, transporte);
 
-    // Nivel 2: evaluar descripciones genéricas EN PARALELO
     const validacionesINV021: Validacion[] = [];
 
     if (descripciones_a_evaluar.length > 0) {
@@ -162,9 +218,7 @@ export async function POST(request: NextRequest) {
             descripcion: item.descripcion,
             ...resultado,
           };
-        } catch (err) {
-          // No imprimir error: es una feature secundaria.
-          // Si falla, simplemente no se evalúa esa descripción.
+        } catch {
           return null;
         }
       });
@@ -182,7 +236,6 @@ export async function POST(request: NextRequest) {
 
     validaciones.push(...validacionesINV021);
 
-    // Resultado global
     const altas = validaciones.filter(
       (v) => v.resultado === "discrepancia" && v.severidad === "alta"
     );
@@ -198,6 +251,21 @@ export async function POST(request: NextRequest) {
     else if (medias.length > 0 || noComprobables.length > 0)
       resultadoGlobal = "revisar";
     else resultadoGlobal = "apto";
+
+    // ============================================================
+    // Incrementar contador (solo si auth activa y no hay suscripción)
+    // ============================================================
+    if (
+      process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" &&
+      userId &&
+      !tieneSuscripcionActiva
+    ) {
+      const supabase = await createClient();
+      await supabase
+        .from("profiles")
+        .update({ analyses_count: contadorActual + 1 })
+        .eq("id", userId);
+    }
 
     // Limpiar temporales
     try {

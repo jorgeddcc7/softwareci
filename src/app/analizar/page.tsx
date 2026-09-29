@@ -1,14 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { InformeDocumento } from "./informe-pdf";
-
-const PDFDownloadLink = dynamic(
-  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
-  { ssr: false }
-);
+import { createClient } from "@/utils/supabase/client";
 
 interface Validacion {
   regla: string;
@@ -55,11 +49,48 @@ export default function AnalizarPage() {
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [preparadoPor, setPreparadoPor] = useState("");
+  const [tieneSuscripcion, setTieneSuscripcion] = useState(false);
+  const [cargandoPerfil, setCargandoPerfil] = useState(true);
+
+  // Cargar perfil del usuario para saber si tiene suscripción
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_AUTH_ENABLED !== "true") {
+      setTieneSuscripcion(true);
+      setCargandoPerfil(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const cargarPerfil = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setCargandoPerfil(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", user.id)
+        .single();
+      setTieneSuscripcion(profile?.subscription_status === "active");
+      setCargandoPerfil(false);
+    };
+    cargarPerfil();
+  }, []);
 
   async function handleAnalizar() {
     if (!factura || !packing) {
       setError("Selecciona al menos la factura y el packing list.");
+      return;
+    }
+
+    // Comprobación de transporte (solo pago)
+    if (transporte && !tieneSuscripcion) {
+      setError(
+        "El análisis con documento de transporte requiere un plan de pago."
+      );
       return;
     }
 
@@ -83,6 +114,12 @@ export default function AnalizarPage() {
 
       const datos = await respuesta.json();
 
+      // Límite agotado
+      if (respuesta.status === 402) {
+        window.location.href = "/precios?limit_reached=true";
+        return;
+      }
+
       if (!respuesta.ok) {
         setError(datos.error || "Error al procesar los documentos.");
         return;
@@ -100,11 +137,14 @@ export default function AnalizarPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="border-b border-border bg-surface">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5">
-            <img src="/logocd.png" alt="Controlador de Documentos" className="w-11 h-11 rounded-lg" />
+            <img
+              src="/logocd.png"
+              alt="Controlador de Documentos"
+              className="w-11 h-11 rounded-lg"
+            />
             <span className="font-semibold text-foreground text-base">
               Controlador de Documentos
             </span>
@@ -141,17 +181,36 @@ export default function AnalizarPage() {
             archivo={packing}
             onArchivo={setPacking}
           />
-          <ZonaSubida
-            etiqueta="Documento de transporte"
-            subtitulo="Opcional (B/L, AWB o CMR)"
-            requerido={false}
-            archivo={transporte}
-            onArchivo={setTransporte}
-          />
+          {tieneSuscripcion ? (
+            <ZonaSubida
+              etiqueta="Documento de transporte"
+              subtitulo="Opcional (B/L, AWB o CMR)"
+              requerido={false}
+              archivo={transporte}
+              onArchivo={setTransporte}
+            />
+          ) : (
+            !cargandoPerfil && (
+              <div className="border-2 border-dashed border-border rounded-lg p-5 text-center bg-slate-50">
+                <p className="font-semibold text-foreground text-sm mb-1">
+                  Documento de transporte
+                </p>
+                <p className="text-xs text-muted mb-3">
+                  Solo en planes de pago
+                </p>
+                <Link
+                  href="/precios"
+                  className="text-xs text-primary font-medium hover:text-primary-hover"
+                >
+                  Ver planes →
+                </Link>
+              </div>
+            )
+          )}
         </div>
 
-        {/* Selector de tipo de transporte (solo si hay archivo) */}
-        {transporte && (
+        {/* Selector de tipo de transporte */}
+        {transporte && tieneSuscripcion && (
           <div className="mb-6 p-4 bg-surface border border-border rounded-lg">
             <label className="block text-sm font-medium text-foreground mb-2">
               Tipo de documento de transporte
@@ -185,7 +244,6 @@ export default function AnalizarPage() {
           </div>
         )}
 
-        {/* Botón */}
         <button
           onClick={handleAnalizar}
           disabled={analizando || !factura || !packing}
@@ -216,29 +274,7 @@ export default function AnalizarPage() {
           </div>
         )}
 
-        {resultado && (
-          <>
-            <div className="mt-6 p-4 bg-surface border border-border rounded-lg">
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Preparado por (opcional)
-              </label>
-              <input
-                type="text"
-                value={preparadoPor}
-                onChange={(e) => setPreparadoPor(e.target.value)}
-                placeholder="Tu nombre o el de tu empresa"
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
-              />
-              <div className="mt-4">
-                <BotonDescargaInforme
-                  resultado={resultado}
-                  preparadoPor={preparadoPor}
-                />
-              </div>
-            </div>
-            <MostrarResultado resultado={resultado} />
-          </>
-        )}
+        {resultado && <MostrarResultado resultado={resultado} />}
       </main>
     </div>
   );
@@ -286,6 +322,32 @@ function ZonaSubida({
   );
 }
 
+function TipoOpcion({
+  valor,
+  etiqueta,
+  seleccionado,
+  onSeleccionar,
+}: {
+  valor: "auto" | "bill_of_lading" | "air_waybill" | "cmr";
+  etiqueta: string;
+  seleccionado: boolean;
+  onSeleccionar: (v: "auto" | "bill_of_lading" | "air_waybill" | "cmr") => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSeleccionar(valor)}
+      className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+        seleccionado
+          ? "bg-primary text-white border-primary"
+          : "bg-white text-foreground border-border hover:border-primary"
+      }`}
+    >
+      {etiqueta}
+    </button>
+  );
+}
+
 function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
   const altas = resultado.validaciones.filter(
     (v) => v.resultado === "discrepancia" && v.severidad === "alta"
@@ -324,7 +386,6 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
 
   return (
     <div className="mt-10">
-      {/* Resumen global */}
       <div
         className="p-5 rounded-lg mb-6 border-l-4"
         style={{
@@ -347,8 +408,7 @@ function MostrarResultado({ resultado }: { resultado: ResultadoAnalisis }) {
                 : resultado.transporte.tipo === "cmr"
                   ? "CMR"
                   : "B/L"}
-              :{" "}
-              <strong>{resultado.transporte.numero ?? "—"}</strong>
+              : <strong>{resultado.transporte.numero ?? "—"}</strong>
             </>
           )}
         </p>
@@ -456,76 +516,6 @@ function BloqueValidaciones({
         ))}
       </div>
     </div>
-  );
-}
-
-function TipoOpcion({
-  valor,
-  etiqueta,
-  seleccionado,
-  onSeleccionar,
-}: {
-  valor: "auto" | "bill_of_lading" | "air_waybill" | "cmr";
-  etiqueta: string;
-  seleccionado: boolean;
-  onSeleccionar: (v: "auto" | "bill_of_lading" | "air_waybill" | "cmr") => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSeleccionar(valor)}
-      className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-        seleccionado
-          ? "bg-primary text-white border-primary"
-          : "bg-white text-foreground border-border hover:border-primary"
-      }`}
-    >
-      {etiqueta}
-    </button>
-  );
-}
-
-function BotonDescargaInforme({
-  resultado,
-  preparadoPor,
-}: {
-  resultado: ResultadoAnalisis;
-  preparadoPor: string;
-}) {
-  const datos = {
-    numeroFactura: resultado.factura.numero ?? "—",
-    numeroPacking: resultado.packing.numero ?? "—",
-    numeroTransporte: resultado.transporte?.numero ?? null,
-    tipoTransporte:
-      resultado.transporte?.tipo === "air_waybill"
-        ? "AWB"
-        : resultado.transporte?.tipo === "cmr"
-          ? "CMR"
-          : resultado.transporte?.tipo === "bill_of_lading"
-            ? "B/L"
-            : null,
-    ruta:
-      resultado.transporte?.puerto_carga &&
-      resultado.transporte?.puerto_descarga
-        ? `${resultado.transporte.puerto_carga} -> ${resultado.transporte.puerto_descarga}`
-        : null,
-    veredicto: resultado.resultado_global,
-    validaciones: resultado.validaciones,
-    preparadoPor: preparadoPor || undefined,
-  };
-
-  const nombreArchivo = `informe-${resultado.factura.numero ?? "operacion"}.pdf`;
-
-  return (
-    <PDFDownloadLink
-      document={<InformeDocumento datos={datos} />}
-      fileName={nombreArchivo}
-      className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
-    >
-      {({ loading }) =>
-        loading ? "Generando informe..." : "Descargar informe PDF"
-      }
-    </PDFDownloadLink>
   );
 }
 

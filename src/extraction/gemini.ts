@@ -1,47 +1,26 @@
 // ============================================================
 // Conexión con Gemini API (con fallback a OpenRouter)
 // ============================================================
-//
-// Este archivo encapsula toda la comunicación con Gemini.
-// Si Gemini falla (saturado, timeout, etc.), intenta con OpenRouter.
-//
-// Modelos en orden de preferencia: Flash-Lite primero (500 RPD gratis).
-// ============================================================
 
 import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 import path from "path";
 import { analizarConOpenRouter } from "./openrouter";
-import { extraerTextoConSiliconFlow } from "./siliconflow";
 
-/**
- * Modelos en orden de preferencia.
- * Flash-Lite tiene 500 RPD gratuitas vs 20 RPD de Flash normales.
- */
 const MODELOS_FALLBACK = [
   "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
-  "gemini-3.6-flash",
+  "gemini-3.8-flash",
 ];
 
-/**
- * Cache en memoria del último modelo que funcionó.
- * Se reinicia cada vez que se arranca el servidor.
- */
 let modeloPreferido: string | null = null;
 
-/**
- * Devuelve la lista de modelos ordenada, con el último que funcionó primero.
- */
 function obtenerModelosOrdenados(): string[] {
   if (!modeloPreferido) return MODELOS_FALLBACK;
   const resto = MODELOS_FALLBACK.filter((m) => m !== modeloPreferido);
   return [modeloPreferido, ...resto];
 }
 
-/**
- * Verifica que la API key de Gemini esté configurada.
- */
 function verificarApiKey(): string {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.trim() === "" || apiKey.includes("tu_clave_aqui")) {
@@ -53,17 +32,11 @@ function verificarApiKey(): string {
   return apiKey;
 }
 
-/**
- * Crea el cliente de Gemini usando la API key del entorno.
- */
 function crearCliente(): GoogleGenAI {
   const apiKey = verificarApiKey();
   return new GoogleGenAI({ apiKey });
 }
 
-/**
- * Ejecuta una promesa con timeout.
- */
 function conTimeout<T>(
   promesa: Promise<T>,
   ms: number,
@@ -86,12 +59,6 @@ function conTimeout<T>(
   });
 }
 
-/**
- * Clasifica un error:
- * - "recuperable": 503/429/timeout → probar siguiente modelo.
- * - "modelo_no_existe": 404 → saltar al siguiente modelo.
- * - "fatal": cualquier otro → abortar.
- */
 function detectarTipoError(
   error: unknown
 ): "recuperable" | "modelo_no_existe" | "fatal" {
@@ -103,13 +70,9 @@ function detectarTipoError(
     code?: string;
   };
 
-  // 404: modelo no existe en esta cuenta
   if (err.status === 404) return "modelo_no_existe";
-
-  // 503 o 429: recuperable
   if (err.status === 503 || err.status === 429) return "recuperable";
 
-  // Errores de red transitorios
   if (err.code) {
     if (
       err.code === "UND_ERR_HEADERS_TIMEOUT" ||
@@ -122,25 +85,19 @@ function detectarTipoError(
     }
   }
 
-  // Comprobación en el mensaje
   if (typeof err.message === "string") {
-    // Timeout propio: recuperable (probar siguiente modelo)
     if (
       err.message.includes("Timeout tras") ||
       err.message.includes("no respondió en")
     ) {
       return "recuperable";
     }
-
-    // Modelo no existe
     if (
       err.message.includes("NOT_FOUND") ||
       err.message.includes("no longer available")
     ) {
       return "modelo_no_existe";
     }
-
-    // Saturado / rate limit
     if (
       err.message.includes("503") ||
       err.message.includes("UNAVAILABLE")
@@ -162,9 +119,6 @@ function detectarTipoError(
   return "fatal";
 }
 
-/**
- * Sube un PDF a la API de Gemini.
- */
 export async function subirPdf(rutaPdf: string): Promise<string> {
   const cliente = crearCliente();
 
@@ -188,38 +142,28 @@ export async function subirPdf(rutaPdf: string): Promise<string> {
   return archivo.uri;
 }
 
-// Análisis de PDF con fallback Gemini → OpenRouter
-/**
- * Envía un PDF + prompt. Prueba los modelos de Gemini en orden.
- * Si todos fallan, usa OpenRouter.
- *
- * - 1 intento por modelo (si falla, siguiente).
- * - Timeout de 40s por intento.
- * - Si los 3 modelos fallan → OpenRouter.
- */
-/**
- * Envía un PDF + prompt. Prueba los modelos de Gemini en orden.
- * Si todos fallan, usa OpenRouter con el PDF en base64.
- *
- * @param uriPdf - URI del PDF subido a Gemini (para Gemini).
- * @param prompt - Prompt de análisis.
- * @param rutaPdfLocal - Ruta local del PDF (para OpenRouter).
- */
 export async function analizarPdf(
   uriPdf: string,
   prompt: string,
   rutaPdfLocal?: string
 ): Promise<string> {
   const cliente = crearCliente();
-
-  const TIMEOUT_POR_INTENTO = 40000; // 40 segundos
-
+  const TIMEOUT_POR_INTENTO = 40000;
   let ultimoError: unknown = null;
 
-  for (const modelo of obtenerModelosOrdenados()) {
+  // Lista de modelos GRATUITOS (se prueban primero)
+  const modelosGratuitos = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+  ];
+
+  // Modelo de PAGO (solo si todos los gratuitos fallan)
+  const modeloDePago = "gemini-3.8-flash";
+
+  // 1. Intentar con modelos gratuitos
+  for (const modelo of modelosGratuitos) {
     try {
       console.log(`  Enviando a Gemini [${modelo}]...`);
-
       const respuesta = await conTimeout(
         cliente.models.generateContent({
           model: modelo,
@@ -229,10 +173,7 @@ export async function analizarPdf(
               parts: [
                 { text: prompt },
                 {
-                  fileData: {
-                    fileUri: uriPdf,
-                    mimeType: "application/pdf",
-                  },
+                  fileData: { fileUri: uriPdf, mimeType: "application/pdf" },
                 },
               ],
             },
@@ -243,80 +184,51 @@ export async function analizarPdf(
       );
 
       const texto = respuesta.text;
-      if (!texto) {
-        throw new Error("Gemini no devolvió texto en la respuesta.");
-      }
+      if (!texto) throw new Error("Gemini no devolvió texto.");
 
       modeloPreferido = modelo;
       console.log(`  Respuesta recibida (${texto.length} caracteres).`);
       return texto;
     } catch (error: unknown) {
       ultimoError = error;
-      const tipoError = detectarTipoError(error);
-
-      if (tipoError === "fatal") {
-        throw error;
-      }
-
-      if (tipoError === "modelo_no_existe") {
-        console.log(`  [${modelo}] no existe. Probando siguiente...`);
-        continue;
-      }
-
       console.log(`  [${modelo}] no disponible. Probando siguiente...`);
     }
   }
 
-  // Fallback a OpenRouter
-  if (!rutaPdfLocal) {
-    throw new Error(
-      `Todos los modelos de Gemini fallaron y no hay ruta local para OpenRouter. Último error: ${String(ultimoError)}`
-    );
-  }
-
+  // 2. Si todos los gratuitos fallan, intentar con el de PAGO
+  console.log(`  Todos los modelos gratuitos fallaron. Probando con PAGO...`);
   try {
-    console.log("  Todos los modelos de Gemini fallaron. Probando OpenRouter...");
-    return await conTimeout(
-      analizarConOpenRouter(rutaPdfLocal, prompt),
-      30000,
-      "OpenRouter no respondió en 30s"
+    const respuesta = await conTimeout(
+      cliente.models.generateContent({
+        model: modeloDePago,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              { fileData: { fileUri: uriPdf, mimeType: "application/pdf" } },
+            ],
+          },
+        ],
+      }),
+      TIMEOUT_POR_INTENTO,
+      `${modeloDePago} no respondió en ${TIMEOUT_POR_INTENTO / 1000}s`
     );
-  } catch (openRouterError) {
-    console.error("  OpenRouter también falló:", openRouterError);
 
-    // Fallback final: DeepSeek-OCR (SiliconFlow)
-    try {
-      console.log("  Probando DeepSeek-OCR (SiliconFlow)...");
-      const textoMarkdown = await conTimeout(
-        extraerTextoConSiliconFlow(rutaPdfLocal),
-        45000,
-        "DeepSeek-OCR no respondió en 45s"
-      );
+    const texto = respuesta.text;
+    if (!texto) throw new Error("Gemini (pago) no devolvió texto.");
 
-      // El texto extraído es Markdown, no JSON.
-      // Hay que devolverlo para que el route lo procese.
-      // NOTA: Esto requiere un paso adicional de estructuración.
-      throw new Error(
-        "DeepSeek-OCR extrajo el texto pero no lo estructuró. " +
-        "Se requiere integración con LLM para estructurar el JSON."
-      );
-    } catch (deepSeekError) {
-      console.error("  DeepSeek-OCR también falló:", deepSeekError);
-      throw new Error(
-        `Todos los motores (Gemini + OpenRouter + DeepSeek-OCR) fallaron. ` +
-        `Último error Gemini: ${String(ultimoError)}`
-      );
-    }
+    console.log(`  Respuesta recibida (${texto.length} caracteres).`);
+    return texto;
+  } catch (error: unknown) {
+    ultimoError = error;
+    console.error(`  El modelo de pago también falló:`, error);
+    throw new Error(
+      `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
+    );
   }
 }
 
-// ============================================================
-// Evaluación de especificidad de descripciones (Nivel 2)
-// ============================================================
-
-/**
- * Evalúa si una descripción comercial es suficientemente específica.
- */
 export async function evaluarEspecificidad(
   prompt: string
 ): Promise<{
@@ -327,9 +239,7 @@ export async function evaluarEspecificidad(
   confianza: "alta" | "media" | "baja";
 }> {
   const cliente = crearCliente();
-
-  const TIMEOUT_POR_INTENTO = 15000; // 15s por modelo
-
+  const TIMEOUT_POR_INTENTO = 25000;
   let ultimoError: unknown = null;
 
   for (const modelo of obtenerModelosOrdenados()) {
@@ -368,14 +278,10 @@ export async function evaluarEspecificidad(
 
       if (tipoError === "fatal") throw error;
       if (tipoError === "modelo_no_existe") continue;
-
-      // No imprimir error, solo seguir al siguiente modelo
     }
   }
 
-  // Si todos los modelos de Gemini fallan, no evaluamos esta descripción.
-  // Es una feature secundaria; el análisis principal ya está hecho.
   throw new Error(
-    `No se pudo evaluar la descripción (todos los modelos saturados).`
+    `Todos los modelos fallaron. Último error: ${String(ultimoError)}`
   );
 }

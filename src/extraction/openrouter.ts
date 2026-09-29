@@ -38,7 +38,7 @@ export async function analizarConOpenRouter(
   console.log("  Fallback a OpenRouter (PDF como file)[reference:1]...");
 
   const respuesta = await cliente.chat.completions.create({
-    model: "meta-llama/llama-4-maverick:free",
+    model: "inclusionai/ling-3.0-flash-vl:free",
     messages: [
       {
         role: "user",
