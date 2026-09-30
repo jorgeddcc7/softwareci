@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { BotonPortal } from "./boton-portal";
+import { FormLogo } from "./form-logo";
 
 export const metadata = {
   title: "Mi cuenta",
@@ -21,7 +22,7 @@ export default async function CuentaPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "email, subscription_status, subscription_tier, analyses_count, monthly_analyses_count, monthly_analyses_month"
+      "email, subscription_status, subscription_tier, analyses_count, monthly_analyses_count, monthly_analyses_month, company_name, logo_url"
     )
     .eq("id", user.id)
     .single();
@@ -154,6 +155,12 @@ export default async function CuentaPage() {
             </p>
           )}
         </div>
+
+        <FormLogo
+          esPro={tieneSuscripcion && tier === "pro"}
+          companyNameActual={profile?.company_name ?? null}
+          logoUrlActual={profile?.logo_url ?? null}
+        />
 
         <div className="bg-surface border border-border rounded-xl p-6">
           <p className="text-xs text-muted uppercase tracking-wide mb-3">

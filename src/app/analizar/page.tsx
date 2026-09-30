@@ -56,6 +56,8 @@ export default function AnalizarPage() {
     "auto" | "bill_of_lading" | "air_waybill" | "cmr"
   >("auto");
   const [analizando, setAnalizando] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoAnalisis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tieneSuscripcion, setTieneSuscripcion] = useState(false);
@@ -80,10 +82,16 @@ export default function AnalizarPage() {
       }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscription_status")
+        .select("subscription_status, subscription_tier, company_name, logo_url")
         .eq("id", user.id)
         .single();
       setTieneSuscripcion(profile?.subscription_status === "active");
+      setCompanyName(profile?.company_name ?? null);
+      setLogoUrl(
+        profile?.subscription_tier === "pro"
+          ? profile?.logo_url ?? null
+          : null
+      );
       setCargandoPerfil(false);
     };
     cargarPerfil();
@@ -306,6 +314,8 @@ export default function AnalizarPage() {
                   <BotonDescargaInforme
                     resultado={resultado}
                     preparadoPor={preparadoPor}
+                    companyName={companyName}
+                    logoUrl={logoUrl}
                   />
                 </div>
               </div>
@@ -625,9 +635,13 @@ function BloqueNoComprobables({
 function BotonDescargaInforme({
   resultado,
   preparadoPor,
+  companyName,
+  logoUrl,
 }: {
   resultado: ResultadoAnalisis;
   preparadoPor: string;
+  companyName: string | null;
+  logoUrl: string | null;
 }) {
   const datos = {
     numeroFactura: resultado.factura.numero ?? "—",
@@ -649,6 +663,8 @@ function BotonDescargaInforme({
     veredicto: resultado.resultado_global,
     validaciones: resultado.validaciones,
     preparadoPor: preparadoPor || undefined,
+    companyName: companyName || undefined,
+    logoUrl: logoUrl || undefined,
   };
 
   const nombreArchivo = `informe-${resultado.factura.numero ?? "operacion"}.pdf`;

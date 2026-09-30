@@ -6,6 +6,7 @@ import {
   Text,
   View,
   StyleSheet,
+  Image,
 } from "@react-pdf/renderer";
 
 // Estilos del PDF
@@ -38,6 +39,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
+  },
+  customLogo: {
+    width: 40,
+    height: 40,
+    objectFit: "contain",
+  },
+  companyName: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: "#0F172A",
+    marginBottom: 2,
   },
   logoText: {
     color: "#FFFFFF",
@@ -152,6 +164,8 @@ interface DatosInforme {
   veredicto: "apto" | "revisar" | "no_apto";
   validaciones: Validacion[];
   preparadoPor?: string;
+  companyName?: string;
+  logoUrl?: string;
 }
 
 export function InformeDocumento({ datos }: { datos: DatosInforme }) {
@@ -194,12 +208,22 @@ export function InformeDocumento({ datos }: { datos: DatosInforme }) {
         {/* Cabecera */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>CD</Text>
+            {datos.logoUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={datos.logoUrl} style={styles.customLogo} />
+            ) : (
+              <View style={styles.logo}>
+                <Text style={styles.logoText}>CD</Text>
+              </View>
+            )}
+            <View style={{ marginLeft: 8 }}>
+              {datos.companyName && (
+                <Text style={styles.companyName}>{datos.companyName}</Text>
+              )}
+              <Text style={styles.headerTitle}>
+                Informe de revisión documental
+              </Text>
             </View>
-            <Text style={styles.headerTitle}>
-              Informe de revisión documental
-            </Text>
           </View>
           <Text style={styles.headerRight}>{fecha}</Text>
         </View>
