@@ -123,7 +123,7 @@ export default function AvisoLegalPage() {
               Para cualquier consulta relacionada con este aviso legal, puedes
               escribir a{" "}
               <a
-                href="mailto:calculaincoterms@gmail.com"
+                href="mailto:hola@controladordocumentos.com"
                 className="text-primary hover:text-primary-hover"
               >
                 hola@controladordocumentos.com

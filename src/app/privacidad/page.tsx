@@ -55,7 +55,7 @@ export default function PrivacidadPage() {
               titular del sitio <strong>controladordocumentos.com</strong>. Para
               cualquier consulta relacionada con la privacidad puedes escribir a{" "}
               <a
-                href="mailto:calculaincoterms@gmail.com"
+                href="mailto:hola@controladordocumentos.com"
                 className="text-primary hover:text-primary-hover"
               >
                 hola@controladordocumentos.com

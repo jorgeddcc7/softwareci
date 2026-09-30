@@ -150,7 +150,7 @@ export default function HomePage() {
               Privacidad
             </Link>
             <a
-              href="mailto:calculaincoterms@gmail.com"
+              href="mailto:hola@controladordocumentos.com"
               className="text-primary hover:text-primary-hover transition-colors"
             >
               Contacto
