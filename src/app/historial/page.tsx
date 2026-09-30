@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { BotonExportarCSV } from "./boton-csv";
+import { HistorialCliente } from "./historial-cliente";
 
 export const metadata = {
   title: "Historial de operaciones",
@@ -72,7 +74,7 @@ export default async function HistorialPage() {
   const { data: operations } = await supabase
     .from("operations")
     .select(
-      "id, factura_numero, packing_numero, transporte_numero, transporte_tipo, resultado_global, created_at"
+      "id, factura_numero, packing_numero, transporte_numero, transporte_tipo, resultado_global, created_at, client_name, notes"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -101,13 +103,20 @@ export default async function HistorialPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12 w-full flex-1">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Historial de operaciones
-        </h1>
-        <p className="text-muted mb-8">
-          Tus últimas {operations?.length ?? 0} operaciones.
-        </p>
+      <main className="max-w-6xl mx-auto px-6 py-12 w-full flex-1">
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Historial de operaciones
+            </h1>
+            <p className="text-muted">
+              Tus últimas {operations?.length ?? 0} operaciones.
+            </p>
+          </div>
+          {operations && operations.length > 0 && (
+            <BotonExportarCSV operations={operations} />
+          )}
+        </div>
 
         {!operations || operations.length === 0 ? (
           <div className="bg-surface border border-border rounded-xl p-12 text-center">
@@ -122,70 +131,7 @@ export default async function HistorialPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-border">
-                <tr>
-                  <th className="text-left text-xs font-semibold text-muted uppercase tracking-wide px-5 py-3">
-                    Fecha
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted uppercase tracking-wide px-5 py-3">
-                    Factura
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted uppercase tracking-wide px-5 py-3">
-                    Packing
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted uppercase tracking-wide px-5 py-3">
-                    Transporte
-                  </th>
-                  <th className="text-left text-xs font-semibold text-muted uppercase tracking-wide px-5 py-3">
-                    Resultado
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {operations.map((op) => (
-                  <tr key={op.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3 text-sm text-foreground">
-                      {new Date(op.created_at).toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-foreground">
-                      {op.factura_numero ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-foreground">
-                      {op.packing_numero ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 text-sm text-foreground">
-                      {op.transporte_numero
-                        ? `${op.transporte_tipo === "air_waybill" ? "AWB" : op.transporte_tipo === "cmr" ? "CMR" : "B/L"} ${op.transporte_numero}`
-                        : "—"}
-                    </td>
-                    <td className="px-5 py-3 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          op.resultado_global === "no_apto"
-                            ? "bg-high-bg text-high-text"
-                            : op.resultado_global === "revisar"
-                              ? "bg-medium-bg text-medium-text"
-                              : "bg-low-bg text-low-text"
-                        }`}
-                      >
-                        {op.resultado_global === "no_apto"
-                          ? "NO APTO"
-                          : op.resultado_global === "revisar"
-                            ? "REVISAR"
-                            : "APTO"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <HistorialCliente operations={operations} />
         )}
       </main>
     </div>
