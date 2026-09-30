@@ -165,7 +165,7 @@ export default function AnalizarPage() {
           </Link>
           <Link
             href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
+            className="nav-link text-sm text-muted hover:text-foreground transition-colors"
           >
             ← Volver
           </Link>

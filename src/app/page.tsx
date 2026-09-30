@@ -20,7 +20,7 @@ export default function HomePage() {
           <div className="flex items-center gap-6">
             <Link
               href="/analizar"
-              className="text-sm text-muted hover:text-foreground transition-colors"
+              className="nav-link text-sm text-muted hover:text-foreground transition-colors"
             >
               Analizar
             </Link>
