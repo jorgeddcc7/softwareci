@@ -39,16 +39,22 @@ export default function HomePage() {
           transporte. En segundos sabes si hay algo que pueda generar
           retenciones o retrasos.
         </p>
-        <div className="mt-10">
+        <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-sm"
           >
             Analizar documentos →
           </Link>
+          <Link
+            href="/por-que"
+            className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
+          >
+            ¿Por qué usar esta herramienta?
+          </Link>
         </div>
         <p className="mt-6 text-sm text-muted">
-          Sin registro · Sin guardar datos · Prototipo en desarrollo
+          Sin guardar datos · Análisis en menos de un minuto
         </p>
       </section>
 
@@ -124,13 +130,16 @@ export default function HomePage() {
 
       <footer className="border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v0.1</p>
+          <p>Controlador de Documentos · Prototipo v1</p>
           <div className="flex flex-wrap gap-4 items-center justify-center">
             {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
               <Link href="/precios" className="hover:text-foreground transition-colors">
                 Precios
               </Link>
             )}
+            <Link href="/por-que" className="hover:text-foreground transition-colors">
+              Por qué
+            </Link>
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
             </Link>

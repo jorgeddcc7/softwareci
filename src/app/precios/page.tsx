@@ -174,7 +174,7 @@ export default async function PreciosPage({
             <div className="text-center">
               <p className="text-3xl font-bold text-primary mb-1">600 €</p>
               <p className="text-xs text-muted">
-                Multa mínima por documentación incorrecta
+                Multa por documentación incorrecta
               </p>
             </div>
             <div className="text-center">
@@ -198,13 +198,16 @@ export default async function PreciosPage({
 
       <footer className="border-t border-border">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v0.1</p>
+          <p>Controlador de Documentos · Prototipo v1</p>
           <div className="flex flex-wrap gap-4 items-center justify-center">
             {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
               <Link href="/precios" className="hover:text-foreground transition-colors">
                 Precios
               </Link>
             )}
+            <Link href="/por-que" className="hover:text-foreground transition-colors">
+              Por qué
+            </Link>
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
             </Link>

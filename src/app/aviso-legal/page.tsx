@@ -38,9 +38,26 @@ export default function AvisoLegalPage() {
             </h2>
             <p>
               El presente aviso legal regula el uso del sitio web{" "}
-              <strong>controladordocumentos.com</strong>, titularidad de Jorge
-              Dueñas. El acceso y uso del sitio atribuye la condición de usuario
-              y supone la aceptación plena de las condiciones aquí expuestas.
+              <strong>controladordocumentos.com</strong>.
+            </p>
+            <p className="mt-3">
+              <strong>Titular:</strong> Jorge Dueñas
+              <br />
+              <strong>NIF:</strong> 54407157J
+              <br />
+              <strong>Domicilio:</strong> Leganés, Madrid
+              <br />
+              <strong>Email:</strong>{" "}
+              <a
+                href="mailto:hola@controladordocumentos.com"
+                className="text-primary hover:text-primary-hover"
+              >
+                hola@controladordocumentos.com
+              </a>
+            </p>
+            <p className="mt-3">
+              El acceso y uso del sitio atribuye la condición de usuario y
+              supone la aceptación plena de las condiciones aquí expuestas.
             </p>
           </section>
 
@@ -123,7 +140,7 @@ export default function AvisoLegalPage() {
 
       <footer className="border-t border-border">
         <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v0.1</p>
+          <p>Controlador de Documentos · Prototipo v1</p>
           <div className="flex gap-4">
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ

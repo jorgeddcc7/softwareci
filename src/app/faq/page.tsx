@@ -132,7 +132,7 @@ export default function FAQPage() {
 
       <footer className="border-t border-border">
         <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v0.1</p>
+          <p>Controlador de Documentos · Prototipo v1</p>
           <div className="flex gap-4">
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
