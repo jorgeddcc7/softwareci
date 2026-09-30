@@ -2050,7 +2050,7 @@ function reglaTRANS_002(
   if (!ciudadExpedidor || !ciudadCarga) {
     return crearValidacion(
       "TRANS-002",
-      "La ciudad de carga coincide con la ciudad del expedidor",
+      "Ciudad de carga vs Ciudad del expedidor",
       "no_comprobable",
       "media",
       ["factura_comercial", "documento_transporte"],
@@ -2066,7 +2066,7 @@ function reglaTRANS_002(
 
   return crearValidacion(
     "TRANS-002",
-    "La ciudad de carga coincide con la ciudad del expedidor",
+    "Ciudad de carga vs Ciudad del expedidor",
     coincide ? "ok" : "discrepancia",
     "media",
     ["factura_comercial", "documento_transporte"],

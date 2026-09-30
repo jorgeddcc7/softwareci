@@ -4,8 +4,6 @@ import Stripe from "stripe";
 import { stripe } from "@/utils/stripe";
 import { createClient } from "@supabase/supabase-js";
 
-// Cliente de Supabase con Service Role Key (permisos totales).
-// Es necesario porque el webhook se ejecuta sin sesión de usuario.
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -40,7 +38,6 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      // Pago completado: el usuario acaba de suscribirse
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
@@ -52,7 +49,6 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Determinar el tier según el precio
         let tier = "despacho";
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(
@@ -78,7 +74,6 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      // Suscripción actualizada (upgrade/downgrade)
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
@@ -103,7 +98,6 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      // Suscripción cancelada
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;

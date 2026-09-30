@@ -4,7 +4,6 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Comprobar usuario autenticado (solo si auth está activa)
     let userId: string | null = null;
     let userEmail: string | null = null;
 
@@ -25,7 +24,6 @@ export async function POST(request: NextRequest) {
       userEmail = user.email ?? null;
     }
 
-    // 2. Leer el priceId del cuerpo de la petición
     const { priceId } = await request.json();
 
     if (!priceId) {
@@ -35,23 +33,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Crear la sesión de checkout
     const origin = request.headers.get("origin") || "http://localhost:3000";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       customer_email: userEmail ?? undefined,
       client_reference_id: userId ?? undefined,
-      metadata: {
-        userId: userId ?? "",
-      },
+      metadata: { userId: userId ?? "" },
       success_url: `${origin}/precios/exito?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/precios?cancelado=true`,
     });

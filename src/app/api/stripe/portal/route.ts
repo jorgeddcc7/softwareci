@@ -30,8 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const origin =
-      request.headers.get("origin") || "http://localhost:3000";
+    const origin = request.headers.get("origin") || "http://localhost:3000";
 
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,

@@ -1,16 +1,3 @@
-// API Route: /api/analizar
-// ============================================================
-// Procesa en llamadas específicas:
-//   1. Factura (prompt específico).
-//   2. Packing (prompt específico).
-//   3. Transporte (prompt específico, si existe).
-//   4. Descripciones genéricas (una por línea, en paralelo).
-// Si NEXT_PUBLIC_AUTH_ENABLED=true:
-//   - Requiere usuario autenticado.
-//   - Comprueba contador de análisis gratis (3 de por vida).
-//   - Si hay suscripción activa, no cuenta.
-//   - Incrementa contador al terminar.
-
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs";
 import * as path from "path";
@@ -61,9 +48,6 @@ async function guardarTemporal(
 
 export async function POST(request: NextRequest) {
   try {
-    // ============================================================
-    // Comprobaciones de autenticación y límite (solo si auth activa)
-    // ============================================================
     let userId: string | null = null;
     let contadorActual = 0;
     let tieneSuscripcionActiva = false;
@@ -73,7 +57,6 @@ export async function POST(request: NextRequest) {
 
     if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
       const supabase = await createClient();
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -87,7 +70,6 @@ export async function POST(request: NextRequest) {
 
       userId = user.id;
 
-      // Leer perfil
       const { data: profile } = await supabase
         .from("profiles")
         .select(
@@ -109,7 +91,6 @@ export async function POST(request: NextRequest) {
       profileMonthlyCount = profile.monthly_analyses_count ?? 0;
       profileMonthlyMonth = profile.monthly_analyses_month ?? null;
 
-      // Si NO tiene suscripción: límite de 3 análisis gratis de por vida
       if (!tieneSuscripcionActiva && contadorActual >= LIMITE_GRATIS) {
         return NextResponse.json(
           {
@@ -121,17 +102,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Si tiene suscripción Despacho: límite de 100 análisis al mes
       if (
         tieneSuscripcionActiva &&
-        profile.subscription_tier === "despacho"
+        profileSubscriptionTier === "despacho"
       ) {
-        const mesActual = new Date().toISOString().slice(0, 7); // "2026-09"
-        const mesGuardado = profile.monthly_analyses_month ?? null;
+        const mesActual = new Date().toISOString().slice(0, 7);
         const contadorMensual =
-          mesGuardado === mesActual
-            ? (profile.monthly_analyses_count ?? 0)
-            : 0;
+          profileMonthlyMonth === mesActual ? profileMonthlyCount : 0;
 
         if (contadorMensual >= LIMITE_MENSUAL_DESPACHO) {
           return NextResponse.json(
@@ -145,22 +122,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Si no tiene suscripción y ya gastó los análisis gratis → bloquear
-      if (!tieneSuscripcionActiva && contadorActual >= LIMITE_GRATIS) {
+      // Comprobar acceso a transporte (cualquier plan de pago)
+      const formDataCheck = await request.clone().formData();
+      const tieneTransporte = formDataCheck.get("transporte") !== null;
+
+      if (tieneTransporte && !tieneSuscripcionActiva) {
         return NextResponse.json(
           {
             error:
-              "Has agotado tus 3 análisis gratuitos. Suscríbete para seguir usando la herramienta.",
-            code: "LIMIT_REACHED",
+              "El análisis con documento de transporte requiere un plan de pago.",
           },
           { status: 402 }
         );
       }
     }
 
-    // ============================================================
-    // Análisis
-    // ============================================================
     const formData = await request.formData();
     const facturaFile = formData.get("factura") as File | null;
     const packingFile = formData.get("packing") as File | null;
@@ -232,10 +208,6 @@ export async function POST(request: NextRequest) {
     const validacionesINV021: Validacion[] = [];
 
     if (descripciones_a_evaluar.length > 0) {
-      console.log(
-        `Evaluando ${descripciones_a_evaluar.length} descripción(es) en paralelo...`
-      );
-
       const promesas = descripciones_a_evaluar.map(async (item) => {
         try {
           const prompt = promptEspecificidad(item.descripcion, {
@@ -283,34 +255,20 @@ export async function POST(request: NextRequest) {
       resultadoGlobal = "revisar";
     else resultadoGlobal = "apto";
 
-    // ============================================================
-    // Incrementar contador (solo si auth activa y no hay suscripción)
-    // ============================================================
-    if (
-      process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" &&
-      userId
-    ) {
+    if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" && userId) {
       const supabase = await createClient();
 
-      // Sin suscripción: incrementar contador de análisis gratis
+      // Incrementar contadores
       if (!tieneSuscripcionActiva) {
         await supabase
           .from("profiles")
           .update({ analyses_count: contadorActual + 1 })
           .eq("id", userId);
-      }
-
-      // Con suscripción Despacho: incrementar contador mensual
-      if (
-        tieneSuscripcionActiva &&
-        profileSubscriptionTier === "despacho"
-      ) {
+      } else if (profileSubscriptionTier === "despacho") {
         const mesActual = new Date().toISOString().slice(0, 7);
-        const mesGuardado = profileMonthlyMonth ?? null;
-
         const nuevoContador =
-          mesGuardado === mesActual
-            ? (profileMonthlyCount ?? 0) + 1
+          profileMonthlyMonth === mesActual
+            ? profileMonthlyCount + 1
             : 1;
 
         await supabase
@@ -321,9 +279,21 @@ export async function POST(request: NextRequest) {
           })
           .eq("id", userId);
       }
+
+      // Guardar operación en histórico (solo Pro)
+      if (tieneSuscripcionActiva && profileSubscriptionTier === "pro") {
+        await supabase.from("operations").insert({
+          user_id: userId,
+          factura_numero: factura.numero_factura.valor,
+          packing_numero: packing.numero_documento.valor,
+          transporte_numero: transporte?.numero_documento.valor ?? null,
+          transporte_tipo: transporte?.tipo_documento ?? null,
+          resultado_global: resultadoGlobal,
+          validaciones: validaciones,
+        });
+      }
     }
 
-    // Limpiar temporales
     try {
       fs.unlinkSync(rutaFactura);
       fs.unlinkSync(rutaPacking);
