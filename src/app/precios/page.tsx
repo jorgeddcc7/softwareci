@@ -27,7 +27,7 @@ const PLANES = [
   {
     nombre: "Despacho",
     precio: "79",
-    periodo: "/mes",
+    periodo: "/mes + IVA",
     descripcion: "Para despachos pequeños y pymes importadoras.",
     caracteristicas: [
       "100 análisis al mes",
@@ -43,7 +43,7 @@ const PLANES = [
   {
     nombre: "Despacho Pro",
     precio: "249",
-    periodo: "/mes",
+    periodo: "/mes + IVA",
     descripcion: "Para transitarios y despachos con varios operadores.",
     caracteristicas: [
       "Análisis ilimitados",
@@ -147,6 +147,12 @@ export default async function PreciosPage({
             </div>
           ))}
         </div>
+
+        <p className="text-xs text-muted text-center max-w-2xl mx-auto mb-16">
+          Los precios no incluyen IVA. Los clientes en España verán añadido el
+          21% de IVA en el pago. Las empresas de la UE con NIF intracomunitario
+          válido y los clientes fuera de la UE no pagan IVA español.
+        </p>
 
         {/* Bloque de ROI */}
         <div className="max-w-3xl mx-auto p-8 bg-primary-light border border-blue-200 rounded-xl">
