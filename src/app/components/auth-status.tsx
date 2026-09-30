@@ -53,9 +53,12 @@ export function AuthStatus() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm text-muted hidden sm:inline">
-        {email}
-      </span>
+      <Link
+        href="/cuenta"
+        className="text-sm text-muted hover:text-foreground transition-colors"
+      >
+        Mi cuenta
+      </Link>
       <button
         onClick={handleLogout}
         className="text-sm text-muted hover:text-foreground transition-colors"

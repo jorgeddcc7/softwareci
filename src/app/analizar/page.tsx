@@ -4,6 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 
+import dynamic from "next/dynamic";
+import { InformeDocumento } from "./informe-pdf";
+
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false }
+);
+
 interface Validacion {
   regla: string;
   descripcion: string;
@@ -42,6 +50,7 @@ interface ResultadoAnalisis {
 export default function AnalizarPage() {
   const [factura, setFactura] = useState<File | null>(null);
   const [packing, setPacking] = useState<File | null>(null);
+  const [preparadoPor, setPreparadoPor] = useState("");
   const [transporte, setTransporte] = useState<File | null>(null);
   const [tipoTransporte, setTipoTransporte] = useState<
     "auto" | "bill_of_lading" | "air_waybill" | "cmr"
@@ -279,7 +288,47 @@ export default function AnalizarPage() {
           </div>
         )}
 
-        {resultado && <MostrarResultado resultado={resultado} />}
+        {resultado && (
+          <>
+            {tieneSuscripcion ? (
+              <div className="mt-6 p-4 bg-surface border border-border rounded-lg">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Preparado por (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={preparadoPor}
+                  onChange={(e) => setPreparadoPor(e.target.value)}
+                  placeholder="Tu nombre o el de tu empresa"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
+                />
+                <div className="mt-4">
+                  <BotonDescargaInforme
+                    resultado={resultado}
+                    preparadoPor={preparadoPor}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 p-4 bg-slate-50 border border-border rounded-lg">
+                <p className="text-sm text-foreground mb-2">
+                  <strong>Informe PDF descargable</strong>
+                </p>
+                <p className="text-sm text-muted mb-3">
+                  El informe PDF descargable está disponible en los planes de
+                  pago.
+                </p>
+                <Link
+                  href="/precios"
+                  className="inline-block px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors"
+                >
+                  Ver planes
+                </Link>
+              </div>
+            )}
+            <MostrarResultado resultado={resultado} />
+          </>
+        )}
       </main>
     </div>
   );
@@ -570,5 +619,49 @@ function BloqueNoComprobables({
         </div>
       )}
     </div>
+  );
+}
+
+function BotonDescargaInforme({
+  resultado,
+  preparadoPor,
+}: {
+  resultado: ResultadoAnalisis;
+  preparadoPor: string;
+}) {
+  const datos = {
+    numeroFactura: resultado.factura.numero ?? "—",
+    numeroPacking: resultado.packing.numero ?? "—",
+    numeroTransporte: resultado.transporte?.numero ?? null,
+    tipoTransporte:
+      resultado.transporte?.tipo === "air_waybill"
+        ? "AWB"
+        : resultado.transporte?.tipo === "cmr"
+          ? "CMR"
+          : resultado.transporte?.tipo === "bill_of_lading"
+            ? "B/L"
+            : null,
+    ruta:
+      resultado.transporte?.puerto_carga &&
+      resultado.transporte?.puerto_descarga
+        ? `${resultado.transporte.puerto_carga} -> ${resultado.transporte.puerto_descarga}`
+        : null,
+    veredicto: resultado.resultado_global,
+    validaciones: resultado.validaciones,
+    preparadoPor: preparadoPor || undefined,
+  };
+
+  const nombreArchivo = `informe-${resultado.factura.numero ?? "operacion"}.pdf`;
+
+  return (
+    <PDFDownloadLink
+      document={<InformeDocumento datos={datos} />}
+      fileName={nombreArchivo}
+      className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
+    >
+      {({ loading }) =>
+        loading ? "Generando informe..." : "Descargar informe PDF"
+      }
+    </PDFDownloadLink>
   );
 }

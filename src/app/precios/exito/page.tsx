@@ -12,9 +12,9 @@ export default function ExitoPage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-1.5">
             <img
-              src="/logo.png"
+              src="/logocd.png"
               alt="Controlador de Documentos"
-              className="w-9 h-9 rounded-lg"
+              className="w-11 h-11 rounded-lg"
             />
             <span className="font-semibold text-foreground text-base">
               Controlador de Documentos
