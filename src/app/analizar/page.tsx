@@ -116,7 +116,12 @@ export default function AnalizarPage() {
 
       // Límite agotado
       if (respuesta.status === 402) {
-        window.location.href = "/precios?limit_reached=true";
+        const code = datos.code;
+        if (code === "MONTHLY_LIMIT_REACHED") {
+          window.location.href = "/precios?monthly_limit=true";
+        } else {
+          window.location.href = "/precios?limit_reached=true";
+        }
         return;
       }
 

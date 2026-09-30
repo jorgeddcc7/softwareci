@@ -39,6 +39,7 @@ import { createClient } from "@/utils/supabase/server";
 export const maxDuration = 300;
 
 const LIMITE_GRATIS = 3;
+const LIMITE_MENSUAL_DESPACHO = 100;
 
 function limpiarJson(texto: string): string {
   let limpio = texto.trim();
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
     let userId: string | null = null;
     let contadorActual = 0;
     let tieneSuscripcionActiva = false;
+    let profileSubscriptionTier: string | null = null;
+    let profileMonthlyCount = 0;
+    let profileMonthlyMonth: string | null = null;
 
     if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
       const supabase = await createClient();
@@ -86,7 +90,9 @@ export async function POST(request: NextRequest) {
       // Leer perfil
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscription_status, analyses_count")
+        .select(
+          "subscription_status, subscription_tier, analyses_count, monthly_analyses_count, monthly_analyses_month"
+        )
         .eq("id", user.id)
         .single();
 
@@ -99,19 +105,44 @@ export async function POST(request: NextRequest) {
 
       contadorActual = profile.analyses_count ?? 0;
       tieneSuscripcionActiva = profile.subscription_status === "active";
+      profileSubscriptionTier = profile.subscription_tier ?? null;
+      profileMonthlyCount = profile.monthly_analyses_count ?? 0;
+      profileMonthlyMonth = profile.monthly_analyses_month ?? null;
 
-      // Comprobar si ha subido transporte (solo pago)
-      const formDataCheck = await request.clone().formData();
-      const tieneTransporte = formDataCheck.get("transporte") !== null;
-
-      if (tieneTransporte && !tieneSuscripcionActiva) {
+      // Si NO tiene suscripción: límite de 3 análisis gratis de por vida
+      if (!tieneSuscripcionActiva && contadorActual >= LIMITE_GRATIS) {
         return NextResponse.json(
           {
             error:
-              "El análisis con documento de transporte requiere un plan de pago.",
+              "Has agotado tus 3 análisis gratuitos. Suscríbete para seguir usando la herramienta.",
+            code: "LIMIT_REACHED",
           },
           { status: 402 }
         );
+      }
+
+      // Si tiene suscripción Despacho: límite de 100 análisis al mes
+      if (
+        tieneSuscripcionActiva &&
+        profile.subscription_tier === "despacho"
+      ) {
+        const mesActual = new Date().toISOString().slice(0, 7); // "2026-09"
+        const mesGuardado = profile.monthly_analyses_month ?? null;
+        const contadorMensual =
+          mesGuardado === mesActual
+            ? (profile.monthly_analyses_count ?? 0)
+            : 0;
+
+        if (contadorMensual >= LIMITE_MENSUAL_DESPACHO) {
+          return NextResponse.json(
+            {
+              error:
+                "Has alcanzado el límite de 100 análisis este mes. Actualiza al plan Pro para análisis ilimitados.",
+              code: "MONTHLY_LIMIT_REACHED",
+            },
+            { status: 402 }
+          );
+        }
       }
 
       // Si no tiene suscripción y ya gastó los análisis gratis → bloquear
@@ -257,14 +288,39 @@ export async function POST(request: NextRequest) {
     // ============================================================
     if (
       process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" &&
-      userId &&
-      !tieneSuscripcionActiva
+      userId
     ) {
       const supabase = await createClient();
-      await supabase
-        .from("profiles")
-        .update({ analyses_count: contadorActual + 1 })
-        .eq("id", userId);
+
+      // Sin suscripción: incrementar contador de análisis gratis
+      if (!tieneSuscripcionActiva) {
+        await supabase
+          .from("profiles")
+          .update({ analyses_count: contadorActual + 1 })
+          .eq("id", userId);
+      }
+
+      // Con suscripción Despacho: incrementar contador mensual
+      if (
+        tieneSuscripcionActiva &&
+        profileSubscriptionTier === "despacho"
+      ) {
+        const mesActual = new Date().toISOString().slice(0, 7);
+        const mesGuardado = profileMonthlyMonth ?? null;
+
+        const nuevoContador =
+          mesGuardado === mesActual
+            ? (profileMonthlyCount ?? 0) + 1
+            : 1;
+
+        await supabase
+          .from("profiles")
+          .update({
+            monthly_analyses_count: nuevoContador,
+            monthly_analyses_month: mesActual,
+          })
+          .eq("id", userId);
+      }
     }
 
     // Limpiar temporales

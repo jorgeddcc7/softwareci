@@ -61,10 +61,11 @@ const PLANES = [
 export default async function PreciosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ limit_reached?: string }>;
+  searchParams: Promise<{ limit_reached?: string; monthly_limit?: string }>;
 }) {
   const params = await searchParams;
   const ocultarPlanGratis = params.limit_reached === "true";
+  const limiteMensual = params.monthly_limit === "true";
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border bg-surface">
@@ -97,6 +98,15 @@ export default async function PreciosPage({
             Empieza gratis. Escala cuando lo necesites. Sin contratos anuales
             ni sorpresas.
           </p>
+          {limiteMensual && (
+            <div className="mt-8 max-w-2xl mx-auto p-4 bg-primary-light border border-blue-200 rounded-lg">
+              <p className="text-sm text-foreground">
+                <strong>Has alcanzado el límite de 100 análisis este mes.</strong>{" "}
+                Actualiza al plan Pro para tener análisis ilimitados y seguir
+                trabajando sin interrupciones.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Tarjetas de precios */}
