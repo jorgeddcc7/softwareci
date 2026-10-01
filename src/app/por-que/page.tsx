@@ -278,7 +278,7 @@ export default function PorQuePage() {
             Pruébalo con una operación real
           </h2>
           <p className="text-muted mb-8 max-w-xl mx-auto">
-            5 análisis gratuitos, sin registro y sin guardar tus documentos.
+            3 análisis gratuitos, sin guardar tus documentos.
             Compruébalo tú mismo.
           </p>
           <Link
