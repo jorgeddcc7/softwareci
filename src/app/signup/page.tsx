@@ -4,10 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { trackEvent } from "@/utils/analytics";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
+  const [verPassword, setVerPassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -16,8 +19,14 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setLoading(true);
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -32,6 +41,8 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
+
+    trackEvent("signup_completed");
 
     if (data.user && !data.session) {
       setSuccess(true);
@@ -104,15 +115,52 @@ export default function SignupPage() {
               <label className="block text-sm font-medium text-foreground mb-1">
                 Contraseña
               </label>
+              <div className="relative">
+                <input
+                  type={verPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 pr-10 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerPassword(!verPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {verPassword ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                      <line x1="2" x2="22" y1="2" y2="2"/>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted mt-1">Mínimo 6 caracteres.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Repite la contraseña
+              </label>
               <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type={verPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
                 className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
               />
-              <p className="text-xs text-muted mt-1">Mínimo 6 caracteres.</p>
             </div>
 
             {error && (

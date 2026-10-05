@@ -7,6 +7,8 @@ import { createClient } from "@/utils/supabase/client";
 import dynamic from "next/dynamic";
 import { InformeDocumento } from "./informe-pdf";
 
+import { trackEvent } from "@/utils/analytics";
+
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   { ssr: false }
@@ -148,6 +150,10 @@ export default function AnalizarPage() {
       }
 
       setResultado(datos as ResultadoAnalisis);
+      trackEvent("analysis_completed", {
+        resultado: datos.resultado_global,
+        con_transporte: transporte ? "si" : "no",
+      });
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Error desconocido al analizar."

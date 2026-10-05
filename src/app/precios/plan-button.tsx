@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { trackEvent } from "@/utils/analytics";
 
 interface PlanButtonProps {
   priceId: string | null;
@@ -55,6 +56,7 @@ export function PlanButton({ priceId, label, destacado }: PlanButtonProps) {
       }
 
       // Redirigir al checkout de Stripe
+      trackEvent("checkout_started", { price_id: priceId ?? "" });
       window.location.href = datos.url;
     } catch (e) {
       setError(

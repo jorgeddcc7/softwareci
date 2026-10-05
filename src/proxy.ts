@@ -16,6 +16,7 @@ export async function proxy(request: NextRequest) {
     "/",
     "/login",
     "/signup",
+    "/recuperar",
     "/precios",
     "/por-que",
     "/faq",
