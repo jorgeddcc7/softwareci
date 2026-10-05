@@ -99,6 +99,17 @@ export default function AnalizarPage() {
     cargarPerfil();
   }, []);
 
+  function resetearAnalisis() {
+    setFactura(null);
+    setPacking(null);
+    setTransporte(null);
+    setTipoTransporte("auto");
+    setResultado(null);
+    setError(null);
+    // Scroll suave al inicio para que el usuario vea el formulario limpio
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function handleAnalizar() {
     if (!factura || !packing) {
       setError("Selecciona al menos la factura y el packing list.");
@@ -286,7 +297,7 @@ export default function AnalizarPage() {
 
         {analizando && (
           <p className="mt-4 text-sm text-muted">
-            Procesando con IA. Esto puede tardar 30-90 segundos.
+            Procesando con IA. Esto puede tardar 20-30 segundos.
           </p>
         )}
 
@@ -342,7 +353,40 @@ export default function AnalizarPage() {
                 </Link>
               </div>
             )}
+
             <MostrarResultado resultado={resultado} />
+
+            {/* Botón analizar otra operación */}
+            <div className="mt-10 pt-8 border-t border-border">
+              <div className="text-center">
+                <p className="text-sm text-muted mb-4">
+                  ¿Quieres revisar otra operación?
+                </p>
+                <button
+                  onClick={resetearAnalisis}
+                  className="group inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-all shadow-sm hover:shadow-md"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform group-hover:rotate-180 duration-500"
+                  >
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 16h5v5" />
+                  </svg>
+                  Analizar otra operación
+                </button>
+              </div>
+            </div>
           </>
         )}
       </main>
