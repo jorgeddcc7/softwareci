@@ -150,6 +150,11 @@ export default async function PreciosPage({
                   </li>
                 ))}
               </ul>
+              {plan.priceId && (
+                <p className="text-xs text-muted text-center mt-3">
+                  Cancela cuando quieras
+                </p>
+              )}
               <PlanButton
                 priceId={plan.priceId}
                 label={plan.cta}
@@ -159,7 +164,7 @@ export default async function PreciosPage({
           ))}
         </div>
 
-        <p className="text-xs text-muted text-center max-w-2xl mx-auto mb-16">
+        <p className="text-xs text-muted text-center max-w-2xl mx-auto mb-4">
           Los precios no incluyen IVA. Los clientes en España verán añadido el
           21% de IVA en el pago. Las empresas de la UE con NIF intracomunitario
           válido y los clientes fuera de la UE no pagan IVA español.

@@ -271,6 +271,28 @@ export default function PorQuePage() {
         </div>
       </section>
 
+      {/* Quién está detrás */}
+      <section className="bg-surface border-y border-border">
+        <div className="max-w-3xl mx-auto px-6 py-16 text-center">
+          <h2 className="text-2xl font-semibold text-foreground mb-4">
+            Quién está detrás
+          </h2>
+          <p className="text-muted leading-relaxed mb-6">
+            Controlador de Documentos nace de la experiencia directa en
+            operaciones de comercio exterior. La herramienta está diseñada por
+            personas que han visto de cerca los problemas que intenta resolver:
+            documentos que no cuadran, plazos que se acortan y errores que se
+            escapan bajo presión.
+          </p>
+          <p className="text-muted leading-relaxed">
+            No somos una consultora. No vendemos asesoría. Construimos software
+            sencillo para problemas concretos del día a día del sector. Todo lo
+            que hacemos parte de conversaciones con despachantes, transitarios
+            y pymes importadoras.
+          </p>
+        </div>
+      </section>
+
       {/* CTA final */}
       <section className="bg-surface border-t border-border">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">

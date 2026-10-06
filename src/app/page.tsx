@@ -46,6 +46,14 @@ export default function HomePage() {
           >
             Analizar documentos →
           </Link>
+          {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
+            <Link
+              href="/precios"
+              className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
+            >
+              Ver precios
+            </Link>
+          )}
           <Link
             href="/por-que"
             className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
