@@ -140,7 +140,7 @@ export default function AvisoLegalPage() {
 
       <footer className="border-t border-border">
         <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v1</p>
+          <p>© 2026 Controlador de Documentos. Todos los derechos reservados.</p>
           <div className="flex gap-4">
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ

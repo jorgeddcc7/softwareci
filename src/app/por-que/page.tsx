@@ -296,7 +296,7 @@ export default function PorQuePage() {
       {/* Footer */}
       <footer className="border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>Controlador de Documentos · Prototipo v1</p>
+          <p>© 2026 Controlador de Documentos. Todos los derechos reservados.</p>
           <div className="flex flex-wrap gap-4 items-center justify-center">
             <Link href="/por-que" className="hover:text-foreground transition-colors">
               Por qué
