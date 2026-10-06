@@ -304,11 +304,23 @@ export default function PorQuePage() {
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
             </Link>
-            <Link href="/aviso-legal" className="hover:text-foreground transition-colors">
-              Aviso legal
+            <a
+              href="mailto:hola@controladordocumentos.com"
+              className="hover:text-foreground transition-colors"
+            >
+              Contacto
+            </a>
+            <Link href="/seguridad" className="hover:text-foreground transition-colors">
+              Seguridad
             </Link>
             <Link href="/privacidad" className="hover:text-foreground transition-colors">
               Privacidad
+            </Link>
+            <Link href="/aviso-legal" className="hover:text-foreground transition-colors">
+              Aviso legal
+            </Link>
+            <Link href="/terminos" className="hover:text-foreground transition-colors">
+              Términos
             </Link>
           </div>
         </div>

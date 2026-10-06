@@ -130,18 +130,33 @@ export default function FAQPage() {
         </div>
       </main>
 
-      <footer className="border-t border-border">
-        <div className="max-w-4xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
+      <footer className="border-t border-border mt-auto">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
           <p>© 2026 Controlador de Documentos. Todos los derechos reservados.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4 items-center justify-center">
+            <Link href="/por-que" className="hover:text-foreground transition-colors">
+              Por qué
+            </Link>
             <Link href="/faq" className="hover:text-foreground transition-colors">
               FAQ
+            </Link>
+            <a
+              href="mailto:hola@controladordocumentos.com"
+              className="hover:text-foreground transition-colors"
+            >
+              Contacto
+            </a>
+            <Link href="/seguridad" className="hover:text-foreground transition-colors">
+              Seguridad
+            </Link>
+            <Link href="/privacidad" className="hover:text-foreground transition-colors">
+              Privacidad
             </Link>
             <Link href="/aviso-legal" className="hover:text-foreground transition-colors">
               Aviso legal
             </Link>
-            <Link href="/privacidad" className="hover:text-foreground transition-colors">
-              Privacidad
+            <Link href="/terminos" className="hover:text-foreground transition-colors">
+              Términos
             </Link>
           </div>
         </div>
