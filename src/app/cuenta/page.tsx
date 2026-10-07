@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { BotonPortal } from "./boton-portal";
 import { FormLogo } from "./form-logo";
+import { BotonEliminar } from "./boton-eliminar";
 
 export const metadata = {
   title: "Mi cuenta",
@@ -188,6 +189,16 @@ export default async function CuentaPage() {
               </Link>
             </>
           )}
+        </div>
+        <div className="bg-surface border border-red-200 rounded-xl p-6 mt-6">
+          <p className="text-xs text-red-600 uppercase tracking-wide mb-3 font-semibold">
+            Zona de peligro
+          </p>
+          <p className="text-sm text-muted mb-4 leading-relaxed">
+            Puedes eliminar tu cuenta y todos tus datos en cualquier momento.
+            Esta acción es permanente y no se puede deshacer.
+          </p>
+          <BotonEliminar tieneSuscripcion={tieneSuscripcion} />
         </div>
       </main>
     </div>
