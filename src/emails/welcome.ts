@@ -9,10 +9,14 @@ export function welcomeEmailHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bienvenido a Controlador de Documentos</title>
+  <title>Bienvenido a Controlador de Documentos👋</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F8FAFC;">
+<!-- Preheader (texto oculto que aparece junto al asunto) -->
+<div style="display: none; max-height: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #F8FAFC;">
+  Ya puedes analizar tus documentos de importación. Tienes 3 análisis gratuitos.
+</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F8FAFC;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0;">
@@ -77,7 +81,7 @@ export function welcomeEmailHtml(): string {
               </p>
               <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #475569;">
                 Un saludo,<br>
-                Jorge
+                El equipo de Controlador de Documentos
               </p>
             </td>
           </tr>
@@ -89,7 +93,8 @@ export function welcomeEmailHtml(): string {
                 Controlador de Documentos · <a href="https://www.controladordocumentos.com" style="color: #2563EB; text-decoration: none;">controladordocumentos.com</a>
               </p>
               <p style="margin: 8px 0 0 0; font-size: 11px; line-height: 1.5; color: #94A3B8; text-align: center;">
-                Recibes este correo porque te has registrado en nuestra web.
+                Recibes este correo porque te has registrado en nuestra web.<br>
+                Puedes responder directamente a este email si tienes cualquier duda.
               </p>
             </td>
           </tr>
