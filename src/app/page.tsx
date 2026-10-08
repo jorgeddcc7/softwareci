@@ -25,6 +25,13 @@ export default function HomePage() {
             >
               Analizar
             </Link>
+            {/* ← NUEVO */}
+            <Link
+              href="/blog"
+              className="nav-link text-sm text-muted hover:text-foreground transition-colors"
+            >
+              El Despacho
+            </Link>
             <AuthStatus />
           </div>
         </div>

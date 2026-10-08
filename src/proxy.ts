@@ -24,6 +24,7 @@ export async function proxy(request: NextRequest) {
     "/privacidad",
     "/seguridad",
     "/terminos",
+    "/blog",
     "/auth/callback",
   ];
   const isPublicRoute = publicRoutes.some(
