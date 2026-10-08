@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "¿Por qué usar Controlador de Documentos?",
   description:
     "Descubre cuánto cuesta un error documental en una operación de importación y cómo detectarlo antes del despacho aduanero.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/por-que",
+  },
 };
 
 export default function PorQuePage() {

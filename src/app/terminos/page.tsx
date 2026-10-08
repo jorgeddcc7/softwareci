@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Términos y condiciones",
   description:
     "Términos y condiciones de uso de Controlador de Documentos de Comercio Exterior.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/terminos",
+  },
 };
 
 export default function TerminosPage() {

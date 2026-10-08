@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Política de privacidad",
   description:
     "Cómo tratamos tus datos y tus documentos en el Controlador de Documentos de Comercio Exterior.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/privacidad",
+  },
 };
 
 export default function PrivacidadPage() {

@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Seguridad",
   description:
     "Cómo tratamos tus documentos y datos en Controlador de Documentos. Privacidad, cifrado y proveedores.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/seguridad",
+  },
 };
 
 export default function SeguridadPage() {

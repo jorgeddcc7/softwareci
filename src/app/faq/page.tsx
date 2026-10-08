@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
   description:
-    "Preguntas frecuentes sobre el Controlador de Documentos de Comercio Exterior: privacidad, funcionamiento, alcance y limitaciones.",
+    "Preguntas frecuentes sobre el Controlador de Documentos: privacidad, funcionamiento, alcance y limitaciones.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/faq",
+  },
 };
 
 const PREGUNTAS = [

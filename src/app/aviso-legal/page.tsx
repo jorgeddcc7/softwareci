@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Aviso legal",
-  description: "Aviso legal del Controlador de Documentos de Comercio Exterior.",
+  description:
+    "Aviso legal del Controlador de Documentos de Comercio Exterior.",
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/aviso-legal",
+  },
 };
 
 export default function AvisoLegalPage() {

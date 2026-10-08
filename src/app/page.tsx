@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthStatus } from "./components/auth-status";
+import { JsonLd } from "@/components/JsonLd";
 
 export default function HomePage() {
   return (
@@ -167,6 +168,29 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Controlador de Documentos",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          url: "https://www.controladordocumentos.com",
+          description:
+            "Herramienta que detecta incoherencias entre factura, packing list y documento de transporte antes del despacho aduanero.",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "EUR",
+            description: "Prueba gratuita con 3 análisis incluidos",
+          },
+          provider: {
+            "@type": "Organization",
+            name: "Controlador de Documentos",
+            url: "https://www.controladordocumentos.com",
+          },
+        }}
+      />
     </div>
   );
 }
