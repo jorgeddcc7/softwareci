@@ -45,7 +45,7 @@ export default async function CuentaPage() {
 
   const precioPlan = tieneSuscripcion
     ? tier === "pro"
-      ? "249€/mes + IVA"
+      ? "149€/mes + IVA"
       : "79€/mes + IVA"
     : "Gratis";
 
