@@ -74,6 +74,36 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* Vídeo demo */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-semibold text-foreground mb-2">
+            Cómo funciona en 60 segundos
+          </h2>
+          <p className="text-muted max-w-2xl mx-auto">
+            Sube la factura y el packing list. La IA los compara y te avisa de
+            las incoherencias antes del despacho aduanero.
+          </p>
+        </div>
+        <div className="aspect-video w-full max-w-3xl mx-auto rounded-xl overflow-hidden border border-border shadow-sm">
+          <iframe
+            src="https://www.youtube.com/embed/qSn3ZBzwsuQ"
+            title="Controlador de Documentos — Demo"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+          />
+        </div>
+        <div className="text-center mt-8">
+          <Link
+            href="/analizar"
+            className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
+          >
+            Analizar documentos →
+          </Link>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="bg-surface border-y border-border">
         <div className="max-w-6xl mx-auto px-6 py-20">
