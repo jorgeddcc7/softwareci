@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PlanButton } from "./plan-button";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export const metadata: Metadata = {
   title: "Precios",
@@ -83,6 +84,7 @@ export default async function PreciosPage({
               Controlador de Documentos
             </span>
           </Link>
+          <LanguageSwitcher />
           <Link
             href="/"
             className="text-sm text-muted hover:text-foreground transition-colors"

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export const metadata: Metadata = {
   title: "Seguridad",
@@ -25,6 +26,7 @@ export default function SeguridadPage() {
               Controlador de Documentos
             </span>
           </Link>
+          <LanguageSwitcher />
           <Link
             href="/"
             className="text-sm text-muted hover:text-foreground transition-colors"

@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { AuthStatus } from "./components/auth-status";
 import { JsonLd } from "@/components/JsonLd";
+import { getLocale } from "@/i18n/get-locale";
+import { getDictionary } from "@/i18n/dictionaries";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const locale = await getLocale();
+  const t = getDictionary(locale);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -23,15 +29,15 @@ export default function HomePage() {
               href="/analizar"
               className="nav-link text-sm text-muted hover:text-foreground transition-colors"
             >
-              Analizar
+              {t.navAnalyze}
             </Link>
-            {/* ← NUEVO */}
             <Link
               href="/blog"
               className="nav-link text-sm text-muted hover:text-foreground transition-colors"
             >
-              El Despacho
+              {t.navBlog}
             </Link>
+            <LanguageSwitcher />
             <AuthStatus />
           </div>
         </div>
@@ -40,50 +46,43 @@ export default function HomePage() {
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-foreground max-w-3xl mx-auto leading-[1.15] tracking-tight">
-          Detecta incoherencias en tu documentación antes del despacho aduanero
+          {t.heroTitle}
         </h1>
         <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-          Sube la factura comercial, el packing list y el documento de
-          transporte. En segundos sabes si hay algo que pueda generar
-          retenciones o retrasos.
+          {t.heroSubtitle}
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-sm"
           >
-            Analizar documentos →
+            {t.heroCtaPrimary}
           </Link>
           {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
             <Link
               href="/precios"
               className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
             >
-              Ver precios
+              {t.heroCtaPricing}
             </Link>
           )}
           <Link
             href="/por-que"
             className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
           >
-            ¿Por qué usar esta herramienta?
+            {t.heroCtaWhy}
           </Link>
         </div>
-        <p className="mt-6 text-sm text-muted">
-          Sin guardar datos · Análisis en menos de un minuto
-        </p>
+        <p className="mt-6 text-sm text-muted">{t.heroTrust}</p>
       </section>
 
       {/* Vídeo demo */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-semibold text-foreground mb-2">
-            Cómo funciona en 60 segundos
+            {t.videoTitle}
           </h2>
-          <p className="text-muted max-w-2xl mx-auto">
-            Sube la factura y el packing list. La IA los compara y te avisa de
-            las incoherencias antes del despacho aduanero.
-          </p>
+          <p className="text-muted max-w-2xl mx-auto">{t.videoSubtitle}</p>
         </div>
         <div className="aspect-video w-full max-w-3xl mx-auto rounded-xl overflow-hidden border border-border shadow-sm">
           <iframe
@@ -99,7 +98,7 @@ export default function HomePage() {
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
           >
-            Analizar documentos →
+            {t.heroCtaPrimary}
           </Link>
         </div>
       </section>
@@ -108,24 +107,24 @@ export default function HomePage() {
       <section className="bg-surface border-y border-border">
         <div className="max-w-6xl mx-auto px-6 py-20">
           <h2 className="text-2xl font-semibold text-foreground text-center mb-14">
-            ¿Qué detecta?
+            {t.featuresTitle}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
             <FeatureItem
-              title="Incoherencias"
-              description="Cantidades, pesos o bultos que no cuadran entre documentos."
+              title={t.feature1Title}
+              description={t.feature1Desc}
             />
             <FeatureItem
-              title="Descripciones genéricas"
-              description="Descripciones que pueden generar sospecha o retención en aduana."
+              title={t.feature2Title}
+              description={t.feature2Desc}
             />
             <FeatureItem
-              title="Campos ausentes"
-              description="Datos obligatorios que faltan en algún documento."
+              title={t.feature3Title}
+              description={t.feature3Desc}
             />
             <FeatureItem
-              title="Incoterms"
-              description="Incoterms mal indicados, incompletos o inconsistentes."
+              title={t.feature4Title}
+              description={t.feature4Desc}
             />
           </div>
         </div>
@@ -134,23 +133,23 @@ export default function HomePage() {
       {/* Cómo funciona */}
       <section className="max-w-6xl mx-auto px-6 py-20">
         <h2 className="text-2xl font-semibold text-foreground text-center mb-14">
-          Cómo funciona
+          {t.howTitle}
         </h2>
         <div className="grid md:grid-cols-3 gap-12">
           <StepItem
             number="1"
-            title="Sube los documentos"
-            description="Factura, packing list y, opcionalmente, documento de transporte (B/L, AWB, CMR) en PDF."
+            title={t.step1Title}
+            description={t.step1Desc}
           />
           <StepItem
             number="2"
-            title="La IA los analiza"
-            description="Extrae los datos clave de cada documento y los estructura."
+            title={t.step2Title}
+            description={t.step2Desc}
           />
           <StepItem
             number="3"
-            title="Recibes alertas"
-            description="Lista priorizada por gravedad, con la referencia al documento y campo exacto en conflicto."
+            title={t.step3Title}
+            description={t.step3Desc}
           />
         </div>
       </section>
@@ -159,52 +158,68 @@ export default function HomePage() {
       <section className="bg-surface border-t border-border">
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <h2 className="text-xl font-semibold text-foreground mb-3">
-            ¿Probamos con una operación tuya?
+            {t.ctaTitle}
           </h2>
-          <p className="text-muted mb-8">
-            Sube los documentos y comprueba en segundos si hay algo que
-            revisar antes del despacho.
-          </p>
+          <p className="text-muted mb-8">{t.ctaSubtitle}</p>
           <Link
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors"
           >
-            Analizar documentos
+            {t.ctaButton}
           </Link>
         </div>
       </section>
 
       <footer className="border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-sm text-muted">
-          <p>© 2026 Controlador de Documentos · Última actualización: octubre 2026</p>
+          <p>{t.footerCopyright}</p>
           <div className="flex flex-wrap gap-4 items-center justify-center">
-            <Link href="/por-que" className="hover:text-foreground transition-colors">
-              Por qué
+            <Link
+              href="/por-que"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerWhy}
             </Link>
-            <Link href="/faq" className="hover:text-foreground transition-colors">
-              FAQ
+            <Link
+              href="/faq"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerFaq}
             </Link>
             <a
               href="mailto:hola@controladordocumentos.com"
               className="hover:text-foreground transition-colors"
             >
-              Contacto
+              {t.footerContact}
             </a>
-            <Link href="/seguridad" className="hover:text-foreground transition-colors">
-              Seguridad
+            <Link
+              href="/seguridad"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerSecurity}
             </Link>
-            <Link href="/privacidad" className="hover:text-foreground transition-colors">
-              Privacidad
+            <Link
+              href="/privacidad"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerPrivacy}
             </Link>
-            <Link href="/aviso-legal" className="hover:text-foreground transition-colors">
-              Aviso legal
+            <Link
+              href="/aviso-legal"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerLegal}
             </Link>
-            <Link href="/terminos" className="hover:text-foreground transition-colors">
-              Términos
+            <Link
+              href="/terminos"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footerTerms}
             </Link>
           </div>
         </div>
       </footer>
+
       <JsonLd
         data={{
           "@context": "https://schema.org",
