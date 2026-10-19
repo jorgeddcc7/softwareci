@@ -5,9 +5,14 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 
 export const metadata: Metadata = {
   title: "Precios",
-  description: "Planes del Controlador de Documentos de Comercio Exterior. Empieza gratis, escala cuando lo necesites.",
+  description:
+    "Planes del Controlador de Documentos de Comercio Exterior. Empieza gratis, escala cuando lo necesites.",
   alternates: {
     canonical: "https://www.controladordocumentos.com/precios",
+    languages: {
+      es: "https://www.controladordocumentos.com/precios",
+      en: "https://www.controladordocumentos.com/en/pricing",
+    },
   },
 };
 

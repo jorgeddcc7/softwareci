@@ -5,6 +5,18 @@ import { getLocale } from "@/i18n/get-locale";
 import { getDictionary } from "@/i18n/dictionaries";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "https://www.controladordocumentos.com/",
+    languages: {
+      es: "https://www.controladordocumentos.com/",
+      en: "https://www.controladordocumentos.com/en",
+    },
+  },
+};
+
 export default async function HomePage() {
   const locale = await getLocale();
   const t = getDictionary(locale);

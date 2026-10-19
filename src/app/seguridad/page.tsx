@@ -8,6 +8,10 @@ export const metadata: Metadata = {
     "Cómo tratamos tus documentos y datos en Controlador de Documentos. Privacidad, cifrado y proveedores.",
   alternates: {
     canonical: "https://www.controladordocumentos.com/seguridad",
+    languages: {
+      es: "https://www.controladordocumentos.com/seguridad",
+      en: "https://www.controladordocumentos.com/en/security",
+    },
   },
 };
 
