@@ -66,6 +66,7 @@ export async function proxy(request: NextRequest) {
     "/terminos",
     "/blog",
     "/auth/callback",
+    "/checklist",
     // Rutas en inglés
     EN_PREFIX,
     `${EN_PREFIX}/pricing`,
