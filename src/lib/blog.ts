@@ -50,8 +50,11 @@ export function obtenerTodosLosArticulos(): Articulo[] {
     };
   });
 
-  articulos.sort((a, b) => (a.date < b.date ? 1 : -1));
-
+  articulos.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.slug.localeCompare(b.slug);
+  });
+  
   const total = articulos.length;
   return articulos.map((a, i) => ({
     ...a,
