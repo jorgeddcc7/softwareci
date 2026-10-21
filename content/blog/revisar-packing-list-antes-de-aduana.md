@@ -109,6 +109,14 @@ La revisión manual es tediosa, pero se puede sistematizar:
 
 En una operación media (20-30 líneas), este proceso manual lleva entre 15 y 30 minutos. En una operación compleja, más de una hora.
 
+---
+
+**¿Quieres el checklist en PDF?**
+
+Descarga gratis los 12 puntos que revisa la aduana en tu packing list, en formato PDF de 2 páginas, listo para imprimir o usar en pantalla.
+
+[Descargar checklist gratis →](https://www.controladordocumentos.com/checklist)
+
 ## Cómo automatizar la revisión
 
 La revisión manual tiene un problema: es tediosa. Y cuando algo es tedioso, se salta. Y cuando se salta, aparecen las retenciones.

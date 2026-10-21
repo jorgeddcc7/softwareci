@@ -3,11 +3,35 @@ import type { Metadata } from "next";
 import { ChecklistForm } from "./form";
 
 export const metadata: Metadata = {
-  title: "Checklist: 12 puntos que revisa la aduana en tu packing list",
+  title: "Checklist gratis: 12 puntos que revisa la aduana en tu packing list",
   description:
-    "Descarga gratis el checklist con los 12 puntos que revisa la aduana en tu packing list. Evita retenciones y errores documentales.",
+    "Descarga gratis el checklist en PDF con los 12 puntos que revisa la aduana en tu packing list. Evita retenciones y errores documentales.",
   alternates: {
     canonical: "https://www.controladordocumentos.com/checklist",
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: "https://www.controladordocumentos.com/checklist",
+    siteName: "Controlador de Documentos",
+    title: "Checklist gratis: 12 puntos que revisa la aduana en tu packing list",
+    description:
+      "PDF de 2 páginas, sin registro. Los 12 campos que revisa la aduana y los 5 errores que más se repiten.",
+    images: [
+      {
+        url: "https://www.controladordocumentos.com/og/checklist.png",
+        width: 1200,
+        height: 630,
+        alt: "Checklist: 12 puntos que revisa la aduana en tu packing list",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Checklist gratis: 12 puntos que revisa la aduana en tu packing list",
+    description:
+      "PDF de 2 páginas, sin registro. Los 12 campos que revisa la aduana y los 5 errores que más se repiten.",
+    images: ["https://www.controladordocumentos.com/og/checklist.png"],
   },
 };
 
