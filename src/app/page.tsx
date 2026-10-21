@@ -57,35 +57,42 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
+        <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
+          Para despachos y transitarios
+        </p>
         <h1 className="text-4xl md:text-5xl font-bold text-foreground max-w-3xl mx-auto leading-[1.15] tracking-tight">
-          {t.heroTitle}
+          Un error documental no es una multa. Es una auditoría en tu expediente.
         </h1>
         <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-          {t.heroSubtitle}
+          Cada incoherencia entre factura, packing list y documento de
+          transporte deja un rastro. Y los rastros repetidos activan las
+          alertas de la aduana. Revisa antes de enviar. Protege tu licencia.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-sm"
           >
-            {t.heroCtaPrimary}
+            Revisar una operación →
           </Link>
           {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
             <Link
               href="/precios"
               className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
             >
-              {t.heroCtaPricing}
+              Ver precios
             </Link>
           )}
           <Link
             href="/por-que"
             className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
           >
-            {t.heroCtaWhy}
+            Por qué es distinto
           </Link>
         </div>
-        <p className="mt-6 text-sm text-muted">{t.heroTrust}</p>
+        <p className="mt-6 text-sm text-muted">
+          Sin guardar datos · Análisis en menos de un minuto
+        </p>
       </section>
 
       {/* Vídeo demo */}

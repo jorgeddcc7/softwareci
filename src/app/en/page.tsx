@@ -56,35 +56,42 @@ export default function HomePageEn() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
+        <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">
+          For customs brokers and freight forwarders
+        </p>
         <h1 className="text-4xl md:text-5xl font-bold text-foreground max-w-3xl mx-auto leading-[1.15] tracking-tight">
-          {t.heroTitle}
+          A documentation error isn't a fine. It's an audit on your record.
         </h1>
         <p className="mt-6 text-lg text-muted max-w-2xl mx-auto leading-relaxed">
-          {t.heroSubtitle}
+          Every inconsistency between invoice, packing list and transport
+          document leaves a trace. And repeated traces trigger customs alerts.
+          Review before you submit. Protect your license.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/analizar"
             className="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-hover transition-colors shadow-sm"
           >
-            {t.heroCtaPrimary}
+            Review a shipment →
           </Link>
           {process.env.NEXT_PUBLIC_SHOW_PRICING === "true" && (
             <Link
               href="/en/pricing"
               className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
             >
-              {t.heroCtaPricing}
+              See pricing
             </Link>
           )}
           <Link
             href="/por-que"
             className="inline-block px-6 py-3 bg-white border border-border text-foreground font-medium rounded-lg hover:border-primary transition-colors"
           >
-            {t.heroCtaWhy}
+            Why it's different
           </Link>
         </div>
-        <p className="mt-6 text-sm text-muted">{t.heroTrust}</p>
+        <p className="mt-6 text-sm text-muted">
+          No data stored · Analysis in under a minute
+        </p>
       </section>
 
       {/* Vídeo demo */}

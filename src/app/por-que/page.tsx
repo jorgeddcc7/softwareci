@@ -46,6 +46,39 @@ export default function PorQuePage() {
         </p>
       </section>
 
+      {/* Defensibilidad */}
+      <section className="max-w-3xl mx-auto px-6 py-16">
+        <h2 className="text-2xl font-semibold text-foreground mb-6">
+          El coste real de un error no es la multa
+        </h2>
+        <p className="text-muted mb-4 leading-relaxed">
+          Cuando la aduana detecta una incoherencia, la multa es lo de menos.
+          Lo grave es lo que queda en tu expediente. Un error aislado se
+          corrige. Tres errores en seis meses activan una revisión.
+          Y una revisión puede acabar en una suspensión temporal de tu
+          licencia como agente o transitario.
+        </p>
+        <p className="text-muted mb-6 leading-relaxed">
+          Por eso los despachos serios no revisan “para ahorrar tiempo”.
+          Revisan para ser <strong className="text-foreground">defendibles</strong>.
+          Para que, si un día llega una inspección, todo cuadre.
+        </p>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="p-5 bg-surface border border-border rounded-lg">
+            <p className="text-3xl font-bold text-primary mb-1">600 €</p>
+            <p className="text-xs text-muted">Multa media por documentación incorrecta</p>
+          </div>
+          <div className="p-5 bg-surface border border-border rounded-lg">
+            <p className="text-3xl font-bold text-primary mb-1">3</p>
+            <p className="text-xs text-muted">Errores en 6 meses activan una revisión</p>
+          </div>
+          <div className="p-5 bg-surface border border-border rounded-lg">
+            <p className="text-3xl font-bold text-primary mb-1">6 meses</p>
+            <p className="text-xs text-muted">Suspensión temporal posible de la licencia</p>
+          </div>
+        </div>
+      </section>
+
       {/* El problema */}
       <section className="bg-surface border-y border-border">
         <div className="max-w-5xl mx-auto px-6 py-20">
