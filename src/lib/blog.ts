@@ -94,3 +94,25 @@ export async function obtenerArticuloPorSlug(
     editionNumber: este?.editionNumber ?? 0,
   };
 }
+
+/**
+ * Devuelve una página de artículos paginada.
+ * page empieza en 1. perPage es el número de artículos por página.
+ */
+export function obtenerArticulosPaginados(
+  page: number,
+  perPage: number
+): {
+  articulos: Articulo[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+} {
+  const todos = obtenerTodosLosArticulos();
+  const total = todos.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (currentPage - 1) * perPage;
+  const articulos = todos.slice(start, start + perPage);
+  return { articulos, total, totalPages, currentPage };
+}

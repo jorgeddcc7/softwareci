@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { obtenerTodosLosArticulos } from "@/lib/blog";
+import { obtenerArticulosPaginados } from "@/lib/blog"; // ← CAMBIADO
+import { PaginadorBlog } from "@/components/PaginadorBlog"; // ← NUEVO
+
+const PER_PAGE = 6; // ← NUEVO
 
 export const metadata: Metadata = {
   title: "El Despacho — Blog",
@@ -35,7 +38,7 @@ function formatearFechaLarga(fecha: string): string {
 }
 
 export default function BlogPage() {
-  const articulos = obtenerTodosLosArticulos();
+  const { articulos, totalPages } = obtenerArticulosPaginados(1, PER_PAGE); // ← CAMBIADO
 
   const destacado = articulos[0];
   const secundarios = articulos.slice(1, 4);
@@ -99,7 +102,6 @@ export default function BlogPage() {
         {/* Bloque principal: destacado + sidebar */}
         {destacado && (
           <div className="grid md:grid-cols-3 gap-8 mb-10">
-            {/* Artículo destacado (ocupa 2/3) */}
             <article className="md:col-span-2 md:border-r md:border-border md:pr-8">
               <Link href={`/blog/${destacado.slug}`} className="group block">
                 <div className="flex items-center gap-3 mb-3">
@@ -137,7 +139,6 @@ export default function BlogPage() {
               </Link>
             </article>
 
-            {/* Sidebar "Últimas noticias" (ocupa 1/3) */}
             {secundarios.length > 0 && (
               <aside className="md:col-span-1">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-widest mb-4 pb-2 border-b-2 border-foreground">
@@ -210,6 +211,9 @@ export default function BlogPage() {
             </div>
           </>
         )}
+
+        {/* ← NUEVO: paginador */}
+        <PaginadorBlog currentPage={1} totalPages={totalPages} />
       </main>
     </div>
   );
