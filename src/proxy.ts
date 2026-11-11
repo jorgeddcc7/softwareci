@@ -67,10 +67,12 @@ export async function proxy(request: NextRequest) {
     "/blog",
     "/auth/callback",
     "/checklist",
+    "/demo",
     // Rutas en inglés
     EN_PREFIX,
     `${EN_PREFIX}/pricing`,
     `${EN_PREFIX}/security`,
+    `${EN_PREFIX}/demo`,
   ];
   const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
