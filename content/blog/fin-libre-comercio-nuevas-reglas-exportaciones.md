@@ -4,7 +4,7 @@ date: "2026-11-11"
 category: "Noticias"
 excerpt: "El neoproteccionismo ya no es solo aranceles. Política industrial, requisitos de contenido local, normativas de sostenibilidad y bloques comerciales están reconfigurando el tablero. Esto es lo que cambia para un exportador español."
 image: "https://images.pexels.com/photos/1554646/pexels-photo-1554646.jpeg"
-imageCaption: "Buque portacontenedores en puerto, imagen de referencia del comercio marítimo global."---
+imageCaption: "Buque portacontenedores en puerto, imagen de referencia del comercio marítimo global."
 ---
 
 Durante tres décadas, el comercio internacional funcionó con una lógica relativamente simple: reducir aranceles, eliminar barreras y confiar en que el mercado asignaría eficientemente la producción. Esa lógica se está desmoronando. No de golpe, sino por acumulación de capas: aranceles selectivos, subsidios masivos, requisitos regulatorios y una creciente desconfianza entre bloques.
