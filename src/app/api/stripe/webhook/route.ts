@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
 import { stripe } from "@/utils/stripe";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -37,38 +32,67 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Usamos el cliente admin centralizado que creamos
+    const supabaseAdmin = createAdminClient();
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
-        const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
 
-        if (!userId) {
-          console.error("No hay userId en el metadata del checkout.");
+        if (session.mode !== "subscription") {
           break;
         }
 
-        let tier = "despacho";
-        if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(
-            subscriptionId
-          );
-          const priceId = subscription.items.data[0].price.id;
-          if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO) {
-            tier = "pro";
-          }
+        const userId = session.metadata?.userId;
+        if (!userId) {
+          console.error("STRIPE_CHECKOUT_USER_MISSING", { eventId: event.id });
+          throw new Error("El checkout no tiene un usuario asociado.");
         }
 
-        await supabaseAdmin
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
+
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+
+        if (!customerId || !subscriptionId) {
+          throw new Error("Faltan datos del cliente o de la suscripción.");
+        }
+
+        // Verificamos el estado real en Stripe
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const status = subscription.status === "active" ? "active" : "inactive";
+
+        const priceId = subscription.items.data[0].price.id;
+        let tier = "despacho";
+        if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO) {
+          tier = "pro";
+        }
+
+        const { data: profile, error: updateError } = await supabaseAdmin
           .from("profiles")
           .update({
-            subscription_status: "active",
+            subscription_status: status,
             subscription_tier: tier,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
           })
-          .eq("id", userId);
+          .eq("id", userId)
+          .select("id")
+          .maybeSingle();
+
+        if (updateError || !profile) {
+          console.error("STRIPE_PROFILE_UPDATE_FAILED", {
+            eventId: event.id,
+            eventType: event.type,
+            code: updateError?.code ?? "PROFILE_NOT_FOUND",
+          });
+          throw new Error("No se pudo guardar la suscripción.");
+        }
 
         console.log(`Suscripción activada para usuario ${userId} (${tier})`);
         break;
@@ -76,9 +100,12 @@ export async function POST(request: NextRequest) {
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
-        const priceId = subscription.items.data[0].price.id;
+        const customerId =
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer.id;
 
+        const priceId = subscription.items.data[0].price.id;
         let tier = "despacho";
         if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO) {
           tier = "pro";
@@ -86,13 +113,24 @@ export async function POST(request: NextRequest) {
 
         const status = subscription.status === "active" ? "active" : "inactive";
 
-        await supabaseAdmin
+        const { data: profile, error: updateError } = await supabaseAdmin
           .from("profiles")
           .update({
             subscription_status: status,
             subscription_tier: tier,
           })
-          .eq("stripe_customer_id", customerId);
+          .eq("stripe_customer_id", customerId)
+          .select("id")
+          .maybeSingle();
+
+        if (updateError || !profile) {
+          console.error("STRIPE_PROFILE_UPDATE_FAILED", {
+            eventId: event.id,
+            eventType: event.type,
+            code: updateError?.code ?? "PROFILE_NOT_FOUND",
+          });
+          throw new Error("No se pudo actualizar la suscripción.");
+        }
 
         console.log(`Suscripción actualizada para cliente ${customerId}`);
         break;
@@ -100,14 +138,28 @@ export async function POST(request: NextRequest) {
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        const customerId =
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer.id;
 
-        await supabaseAdmin
+        const { data: profile, error: updateError } = await supabaseAdmin
           .from("profiles")
           .update({
             subscription_status: "inactive",
           })
-          .eq("stripe_customer_id", customerId);
+          .eq("stripe_customer_id", customerId)
+          .select("id")
+          .maybeSingle();
+
+        if (updateError || !profile) {
+          console.error("STRIPE_PROFILE_UPDATE_FAILED", {
+            eventId: event.id,
+            eventType: event.type,
+            code: updateError?.code ?? "PROFILE_NOT_FOUND",
+          });
+          throw new Error("No se pudo guardar la cancelación.");
+        }
 
         console.log(`Suscripción cancelada para cliente ${customerId}`);
         break;

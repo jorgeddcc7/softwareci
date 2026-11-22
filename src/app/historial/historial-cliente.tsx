@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ModalEditar } from "./modal-editar";
+import Link from "next/link";
 
 interface Operation {
   id: string;
@@ -24,7 +25,7 @@ export function HistorialCliente({
 
   return (
     <>
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-border">
             <tr>
@@ -73,30 +74,23 @@ export function HistorialCliente({
                     ? `${op.transporte_tipo === "air_waybill" ? "AWB" : op.transporte_tipo === "cmr" ? "CMR" : "B/L"} ${op.transporte_numero}`
                     : "—"}
                 </td>
-                <td className="px-5 py-3 text-sm">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      op.resultado_global === "no_apto"
-                        ? "bg-high-bg text-high-text"
-                        : op.resultado_global === "revisar"
-                          ? "bg-medium-bg text-medium-text"
-                          : "bg-low-bg text-low-text"
-                    }`}
-                  >
-                    {op.resultado_global === "no_apto"
-                      ? "NO APTO"
-                      : op.resultado_global === "revisar"
-                        ? "REVISAR"
-                        : "APTO"}
-                  </span>
-                </td>
                 <td className="px-5 py-3 text-sm text-right">
-                  <button
-                    onClick={() => setEditando(op)}
-                    className="text-xs text-primary hover:text-primary-hover transition-colors"
-                  >
-                    Editar
-                  </button>
+                  <div className="flex items-center justify-end gap-4 whitespace-nowrap">
+                    <Link
+                      href={`/expedientes/${op.id}`}
+                      className="text-xs font-medium text-primary hover:text-primary-hover transition-colors"
+                    >
+                      Abrir expediente →
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditando(op)}
+                      className="text-xs text-primary hover:text-primary-hover transition-colors"
+                    >
+                      Editar
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

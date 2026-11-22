@@ -59,6 +59,28 @@ function conTimeout<T>(
   });
 }
 
+async function ejecutarConCancelacion<T>(
+  operacion: (signal: AbortSignal) => Promise<T>,
+  ms: number,
+  mensaje: string
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, ms);
+
+  try {
+    return await operacion(controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Timeout tras ${ms}ms: ${mensaje}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function detectarTipoError(
   error: unknown
 ): "recuperable" | "modelo_no_existe" | "fatal" {
@@ -119,27 +141,48 @@ function detectarTipoError(
   return "fatal";
 }
 
-export async function subirPdf(rutaPdf: string): Promise<string> {
+export async function subirPdf(
+  rutaPdf: string,
+  registrarArchivo?: (nombre: string) => void
+): Promise<string> {
   const cliente = crearCliente();
 
   if (!fs.existsSync(rutaPdf)) {
-    throw new Error(`No se encuentra el archivo PDF: ${rutaPdf}`);
+    throw new Error("No se encuentra el archivo PDF temporal.");
   }
-
-  const nombreArchivo = path.basename(rutaPdf);
-  console.log(`  Subiendo PDF: ${nombreArchivo}...`);
 
   const archivo = await cliente.files.upload({
     file: rutaPdf,
-    config: { mimeType: "application/pdf" },
+    config: {
+      mimeType: "application/pdf",
+    },
   });
 
-  if (!archivo.uri) {
-    throw new Error("La API de Gemini no devolvió una URI válida para el PDF.");
+  if (archivo.name) {
+    registrarArchivo?.(archivo.name);
   }
 
-  console.log(`  PDF subido. URI: ${archivo.uri}`);
+  if (!archivo.name || !archivo.uri) {
+    throw new Error("La API de Gemini no devolvió el identificador y la URI del PDF.");
+  }
+
   return archivo.uri;
+}
+
+export async function eliminarPdfRemoto(nombre: string): Promise<void> {
+  const cliente = crearCliente();
+
+  try {
+    await cliente.files.delete({ name: nombre });
+  } catch (error: unknown) {
+    const status =
+      typeof error === "object" && error !== null && "status" in error
+        ? (error as { status?: unknown }).status
+        : undefined;
+
+    if (status === 404) return;
+    throw error;
+  }
 }
 
 export async function analizarPdf(
@@ -164,21 +207,23 @@ export async function analizarPdf(
   for (const modelo of modelosGratuitos) {
     try {
       console.log(`  Enviando a Gemini [${modelo}]...`);
-      const respuesta = await conTimeout(
-        cliente.models.generateContent({
-          model: modelo,
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: prompt },
-                {
-                  fileData: { fileUri: uriPdf, mimeType: "application/pdf" },
-                },
-              ],
+      const respuesta = await ejecutarConCancelacion(
+        (signal) =>
+          cliente.models.generateContent({
+            model: modelo, // o modeloDePago en la segunda llamada
+            config: {
+              abortSignal: signal, // <-- ESTO ES NUEVO
             },
-          ],
-        }),
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { text: prompt },
+                  { fileData: { fileUri: uriPdf, mimeType: "application/pdf" } },
+                ],
+              },
+            ],
+          }),
         TIMEOUT_POR_INTENTO,
         `${modelo} no respondió en ${TIMEOUT_POR_INTENTO / 1000}s`
       );
@@ -198,19 +243,23 @@ export async function analizarPdf(
   // 2. Si todos los gratuitos fallan, intentar con el de PAGO
   console.log(`  Todos los modelos gratuitos fallaron. Probando con PAGO...`);
   try {
-    const respuesta = await conTimeout(
-      cliente.models.generateContent({
-        model: modeloDePago,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              { fileData: { fileUri: uriPdf, mimeType: "application/pdf" } },
-            ],
+    const respuesta = await ejecutarConCancelacion(
+      (signal) =>
+        cliente.models.generateContent({
+          model: modeloDePago, // o modeloDePago en la segunda llamada
+          config: {
+            abortSignal: signal, // <-- ESTO ES NUEVO
           },
-        ],
-      }),
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                { fileData: { fileUri: uriPdf, mimeType: "application/pdf" } },
+              ],
+            },
+          ],
+        }),
       TIMEOUT_POR_INTENTO,
       `${modeloDePago} no respondió en ${TIMEOUT_POR_INTENTO / 1000}s`
     );

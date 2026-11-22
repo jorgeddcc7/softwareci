@@ -6,6 +6,7 @@ import {
   subirPdf,
   analizarPdf,
   evaluarEspecificidad,
+  eliminarPdfRemoto,
 } from "@/extraction/gemini";
 import { promptFactura, promptPackingList } from "@/extraction/prompt";
 import { promptTransporte } from "@/extraction/prompt-transporte";
@@ -22,6 +23,7 @@ import {
   ACCIONES_SUGERIDAS,
 } from "@/rules/motor";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export const maxDuration = 300;
 
@@ -37,16 +39,22 @@ function limpiarJson(texto: string): string {
 }
 
 async function guardarTemporal(
+  directorio: string,
   nombre: string,
   contenido: Buffer
 ): Promise<string> {
-  const dirTemp = fs.mkdtempSync(path.join(os.tmpdir(), "doc-"));
-  const rutaTemp = path.join(dirTemp, nombre);
-  fs.writeFileSync(rutaTemp, contenido);
-  return rutaTemp;
+  const ruta = path.join(directorio, nombre);
+  await fs.promises.writeFile(ruta, contenido);
+  return ruta;
 }
 
 export async function POST(request: NextRequest) {
+  let directorioTemporal: string | null = null;
+  const archivosRemotos = new Set<string>();
+  const registrarArchivoRemoto = (nombre: string) => {
+    archivosRemotos.add(nombre);
+  };
+
   try {
     let userId: string | null = null;
     let contadorActual = 0;
@@ -54,6 +62,9 @@ export async function POST(request: NextRequest) {
     let profileSubscriptionTier: string | null = null;
     let profileMonthlyCount = 0;
     let profileMonthlyMonth: string | null = null;
+
+    let operationId: string | null = null;
+    let estadoPersistencia: "no_aplica" | "guardado" | "error" = "no_aplica";
 
     if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true") {
       const supabase = await createClient();
@@ -157,35 +168,40 @@ export async function POST(request: NextRequest) {
         ? tipoTransporteRaw
         : "auto";
 
+    // 1. Crear directorio temporal único para esta petición
+    directorioTemporal = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "doc-")
+    );
+
     const facturaBuffer = Buffer.from(await facturaFile.arrayBuffer());
-    const rutaFactura = await guardarTemporal("factura.pdf", facturaBuffer);
+    const rutaFactura = await guardarTemporal(directorioTemporal, "factura.pdf", facturaBuffer);
 
     const packingBuffer = Buffer.from(await packingFile.arrayBuffer());
-    const rutaPacking = await guardarTemporal("packing.pdf", packingBuffer);
+    const rutaPacking = await guardarTemporal(directorioTemporal, "packing.pdf", packingBuffer);
 
     let rutaTransporte: string | null = null;
     if (transporteFile) {
       const transporteBuffer = Buffer.from(await transporteFile.arrayBuffer());
-      rutaTransporte = await guardarTemporal("transporte.pdf", transporteBuffer);
+      rutaTransporte = await guardarTemporal(directorioTemporal, "transporte.pdf", transporteBuffer);
     }
 
     console.log("Extrayendo documentos en paralelo...");
 
     const extraerFacturaPromise = (async () => {
-      const uri = await subirPdf(rutaFactura);
+      const uri = await subirPdf(rutaFactura, registrarArchivoRemoto);
       const resp = await analizarPdf(uri, promptFactura(), rutaFactura);
       return JSON.parse(limpiarJson(resp)) as FacturaComercial;
     })();
 
     const extraerPackingPromise = (async () => {
-      const uri = await subirPdf(rutaPacking);
+      const uri = await subirPdf(rutaPacking, registrarArchivoRemoto);
       const resp = await analizarPdf(uri, promptPackingList(), rutaPacking);
       return JSON.parse(limpiarJson(resp)) as PackingList;
     })();
 
     const extraerTransportePromise = rutaTransporte
       ? (async () => {
-          const uri = await subirPdf(rutaTransporte);
+          const uri = await subirPdf(rutaTransporte, registrarArchivoRemoto);
           const resp = await analizarPdf(
             uri,
             promptTransporte(tipoTransporte),
@@ -195,11 +211,22 @@ export async function POST(request: NextRequest) {
         })()
       : Promise.resolve(null);
 
-    const [factura, packing, transporte] = await Promise.all([
+    // 2. Manejo seguro de extracciones en paralelo
+    const extracciones = [
       extraerFacturaPromise,
       extraerPackingPromise,
       extraerTransportePromise,
-    ]);
+    ] as const;
+
+    const [factura, packing, transporte] = await (async () => {
+      try {
+        return await Promise.all(extracciones);
+      } catch (error) {
+        // Si una falla, esperamos a que las demás terminen antes de limpiar
+        await Promise.allSettled(extracciones);
+        throw error;
+      }
+    })();
 
     console.log("Ejecutando motor de reglas...");
     const { validaciones, advertencias, descripciones_a_evaluar } =
@@ -257,10 +284,10 @@ export async function POST(request: NextRequest) {
 
     if (process.env.NEXT_PUBLIC_AUTH_ENABLED === "true" && userId) {
       const supabase = await createClient();
-
+      const admin = createAdminClient();
       // Incrementar contadores
       if (!tieneSuscripcionActiva) {
-        await supabase
+        await admin
           .from("profiles")
           .update({ analyses_count: contadorActual + 1 })
           .eq("id", userId);
@@ -271,7 +298,7 @@ export async function POST(request: NextRequest) {
             ? profileMonthlyCount + 1
             : 1;
 
-        await supabase
+        await admin
           .from("profiles")
           .update({
             monthly_analyses_count: nuevoContador,
@@ -282,28 +309,38 @@ export async function POST(request: NextRequest) {
 
       // Guardar operación en histórico (solo Pro)
       if (tieneSuscripcionActiva && profileSubscriptionTier === "pro") {
-        await supabase.from("operations").insert({
-          user_id: userId,
-          factura_numero: factura.numero_factura.valor,
-          packing_numero: packing.numero_documento.valor,
-          transporte_numero: transporte?.numero_documento.valor ?? null,
-          transporte_tipo: transporte?.tipo_documento ?? null,
-          resultado_global: resultadoGlobal,
-          validaciones: validaciones,
-        });
+        const { data: operation, error: operationError } = await admin
+          .from("operations")
+          .insert({
+            user_id: userId,
+            factura_numero: factura.numero_factura.valor,
+            packing_numero: packing.numero_documento.valor,
+            transporte_numero: transporte?.numero_documento.valor ?? null,
+            transporte_tipo: transporte?.tipo_documento ?? null,
+            resultado_global: resultadoGlobal,
+            validaciones,
+          })
+          .select("id")
+          .single();
+        
+        if (operationError || !operation) {
+          estadoPersistencia = "error";
+          console.error("No se pudo guardar la operación:", {
+            code: operationError?.code ?? "NO_ROW_RETURNED",
+          });
+        } else {
+          operationId = operation.id;
+          estadoPersistencia = "guardado";
+        }
       }
-    }
-
-    try {
-      fs.unlinkSync(rutaFactura);
-      fs.unlinkSync(rutaPacking);
-      if (rutaTransporte) fs.unlinkSync(rutaTransporte);
-    } catch {
-      // Nada
     }
 
     return NextResponse.json({
       exito: true,
+      operation_id: operationId,
+      persistencia: {
+        estado: estadoPersistencia,
+      },
       factura: {
         numero: factura.numero_factura.valor,
         fecha: factura.fecha_emision.valor,
@@ -340,5 +377,35 @@ export async function POST(request: NextRequest) {
       { error: `Error al procesar los documentos: ${mensaje}` },
       { status: 500 }
     );
+  } finally {
+    // 3. Limpieza garantizada de archivos locales y remotos
+    const tareasLimpieza: Promise<void>[] = [];
+
+    if (directorioTemporal) {
+      const directorio = directorioTemporal;
+      tareasLimpieza.push(
+        fs.promises.rm(directorio, { recursive: true, force: true })
+          .catch(() => console.error("PDF_CLEANUP_LOCAL_FAILED"))
+      );
+    }
+
+    for (const nombre of archivosRemotos) {
+      tareasLimpieza.push(
+        (async () => {
+          for (let intento = 1; intento <= 2; intento++) {
+            try {
+              await eliminarPdfRemoto(nombre);
+              return;
+            } catch {
+              if (intento === 2) {
+                console.error("PDF_CLEANUP_REMOTE_FAILED", { intentos: intento });
+              }
+            }
+          }
+        })()
+      );
+    }
+
+    await Promise.allSettled(tareasLimpieza);
   }
 }
