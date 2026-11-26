@@ -51,27 +51,6 @@ export default async function CuentaPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border bg-surface">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5">
-            <img
-              src="/logocd.png"
-              alt="Controlador de Documentos"
-              className="w-11 h-11 rounded-lg"
-            />
-            <span className="font-semibold text-foreground text-base">
-              Controlador de Documentos
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            ← Volver
-          </Link>
-        </div>
-      </header>
-
       <main className="max-w-3xl mx-auto px-6 py-12 w-full flex-1">
         <h1 className="text-3xl font-bold text-foreground mb-8">Mi cuenta</h1>
 

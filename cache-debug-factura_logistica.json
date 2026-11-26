@@ -1,0 +1,410 @@
+{
+  "schema_version": "1.0",
+  "tipo_detectado": {
+    "valor": "factura_logistica",
+    "texto_original": "FACTURA DE SERVICIOS LOGÍSTICOS",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "proveedor": {
+    "valor": "Global Freight S.L.",
+    "texto_original": "Proveedor: Global Freight S.L.",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "cliente": {
+    "valor": "Importadora Demo S.A.",
+    "texto_original": "Cliente: Importadora Demo S.A.",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "numero_documento": {
+    "valor": "INV-2026-999",
+    "texto_original": "Referencia: INV-2026-999 (Ref. Proveedor: Q-2026-555)",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "referencias_operacion": [
+    {
+      "valor": "Q-2026-555",
+      "texto_original": "Ref. Proveedor: Q-2026-555",
+      "pagina": 1,
+      "ubicacion": "Cabecera",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": ""
+    }
+  ],
+  "fecha_emision": {
+    "valor": "2026-05-15",
+    "texto_original": "Fecha: 15/05/2026",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "moneda_documento": {
+    "valor": "EUR",
+    "texto_original": "Moneda: EUR",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "lineas": [
+    {
+      "descripcion": {
+        "valor": "Ocean Freight",
+        "texto_original": "1. Ocean Freight: 900,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "900,00",
+        "texto_original": "900,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "Moneda: EUR",
+        "pagina": 1,
+        "ubicacion": "Cabecera",
+        "confianza": "media",
+        "estado": "extraido",
+        "nota": "Moneda heredada de la declaración general del documento."
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    },
+    {
+      "descripcion": {
+        "valor": "Handling / Doc Fee",
+        "texto_original": "2. Handling / Doc Fee: 110,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "110,00",
+        "texto_original": "110,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "Moneda: EUR",
+        "pagina": 1,
+        "ubicacion": "Cabecera",
+        "confianza": "media",
+        "estado": "extraido",
+        "nota": "Moneda heredada de la declaración general del documento."
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    },
+    {
+      "descripcion": {
+        "valor": "Customs Clearance",
+        "texto_original": "3. Customs Clearance: 120,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "120,00",
+        "texto_original": "120,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "Moneda: EUR",
+        "pagina": 1,
+        "ubicacion": "Cabecera",
+        "confianza": "media",
+        "estado": "extraido",
+        "nota": "Moneda heredada de la declaración general del documento."
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    },
+    {
+      "descripcion": {
+        "valor": "Storage / Demurrage (4 días)",
+        "texto_original": "4. Storage / Demurrage (4 días): 65,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": "4",
+        "texto_original": "4",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": "días",
+        "texto_original": "días",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "65,00",
+        "texto_original": "65,00 €",
+        "pagina": 1,
+        "ubicacion": "Bloque de conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "Moneda: EUR",
+        "pagina": 1,
+        "ubicacion": "Cabecera",
+        "confianza": "media",
+        "estado": "extraido",
+        "nota": "Moneda heredada de la declaración general del documento."
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    }
+  ],
+  "condiciones": [],
+  "totales": {
+    "subtotal": {
+      "valor": "1.195,00",
+      "texto_original": "Base Imponible: 1.195,00 €",
+      "pagina": 1,
+      "ubicacion": "Pie de factura",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": ""
+    },
+    "impuestos": [
+      {
+        "descripcion": {
+          "valor": "IVA",
+          "texto_original": "IVA (21%)",
+          "pagina": 1,
+          "ubicacion": "Pie de factura",
+          "confianza": "alta",
+          "estado": "extraido",
+          "nota": ""
+        },
+        "porcentaje": {
+          "valor": "21",
+          "texto_original": "21",
+          "pagina": 1,
+          "ubicacion": "Pie de factura",
+          "confianza": "alta",
+          "estado": "extraido",
+          "nota": ""
+        },
+        "base": {
+          "valor": null,
+          "texto_original": "",
+          "pagina": null,
+          "ubicacion": "",
+          "confianza": "baja",
+          "estado": "no_localizado",
+          "nota": ""
+        },
+        "importe": {
+          "valor": "250,95",
+          "texto_original": "250,95 €",
+          "pagina": 1,
+          "ubicacion": "Pie de factura",
+          "confianza": "alta",
+          "estado": "extraido",
+          "nota": ""
+        },
+        "moneda": {
+          "valor": "EUR",
+          "texto_original": "Moneda: EUR",
+          "pagina": 1,
+          "ubicacion": "Cabecera",
+          "confianza": "media",
+          "estado": "extraido",
+          "nota": "Moneda heredada de la declaración general del documento."
+        }
+      }
+    ],
+    "total": {
+      "valor": "1.445,95",
+      "texto_original": "Total: 1.445,95 €",
+      "pagina": 1,
+      "ubicacion": "Pie de factura",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": ""
+    },
+    "tratamiento_impuestos": {
+      "valor": "excluidos",
+      "texto_original": "Base Imponible: 1.195,00 €\nIVA (21%): 250,95 €",
+      "pagina": 1,
+      "ubicacion": "Pie de factura",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": "Se deduce que los impuestos están excluidos al mostrarse una base imponible y añadirse el IVA posteriormente para llegar al total."
+    }
+  },
+  "advertencias": []
+}

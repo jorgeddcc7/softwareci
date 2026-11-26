@@ -1,0 +1,306 @@
+{
+  "schema_version": "1.0",
+  "tipo_detectado": {
+    "valor": "presupuesto",
+    "texto_original": "PRESUPUESTO DE TRANSPORTE INTERNACIONAL",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "proveedor": {
+    "valor": "Global Freight S.L.",
+    "texto_original": "Proveedor: Global Freight S.L.",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "cliente": {
+    "valor": "Importadora Demo S.A.",
+    "texto_original": "Cliente: Importadora Demo S.A.",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "numero_documento": {
+    "valor": "Q-2026-555",
+    "texto_original": "Referencia: Q-2026-555",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "referencias_operacion": [],
+  "fecha_emision": {
+    "valor": "2026-05-01",
+    "texto_original": "Fecha: 01/05/2026",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": ""
+  },
+  "moneda_documento": {
+    "valor": "EUR",
+    "texto_original": "Moneda: EUR",
+    "pagina": 1,
+    "ubicacion": "Cabecera",
+    "confianza": "alta",
+    "estado": "extraido",
+    "nota": "Moneda general aplicable a todo el documento"
+  },
+  "lineas": [
+    {
+      "descripcion": {
+        "valor": "Ocean Freight (Flete marítimo)",
+        "texto_original": "Ocean Freight (Flete marítimo)",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": "1",
+        "texto_original": "1",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": "40HC",
+        "texto_original": "40HC",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "900,00",
+        "texto_original": "900,00",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "€",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": "Heredado de la declaración general de moneda"
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    },
+    {
+      "descripcion": {
+        "valor": "Document Fee (Gestión documental)",
+        "texto_original": "Document Fee (Gestión documental)",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "80,00",
+        "texto_original": "80,00",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "€",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": "Heredado de la declaración general de moneda"
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    },
+    {
+      "descripcion": {
+        "valor": "Customs Brokerage (Despacho aduanero)",
+        "texto_original": "Customs Brokerage (Despacho aduanero)",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "cantidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "unidad": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "precio_unitario": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      },
+      "importe": {
+        "valor": "120,00",
+        "texto_original": "120,00",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": ""
+      },
+      "moneda": {
+        "valor": "EUR",
+        "texto_original": "€",
+        "pagina": 1,
+        "ubicacion": "Conceptos",
+        "confianza": "alta",
+        "estado": "extraido",
+        "nota": "Heredado de la declaración general de moneda"
+      },
+      "tratamiento_impuestos": {
+        "valor": null,
+        "texto_original": "",
+        "pagina": null,
+        "ubicacion": "",
+        "confianza": "baja",
+        "estado": "no_localizado",
+        "nota": ""
+      }
+    }
+  ],
+  "condiciones": [
+    {
+      "valor": "Tiempo de espera libre en destino: 3 días.",
+      "texto_original": "Tiempo de espera libre en destino: 3 días.",
+      "pagina": 1,
+      "ubicacion": "Condiciones",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": ""
+    },
+    {
+      "valor": "Demora a partir del 4º día: 50,00 €/día.",
+      "texto_original": "Demora a partir del 4º día: 50,00 €/día.",
+      "pagina": 1,
+      "ubicacion": "Condiciones",
+      "confianza": "alta",
+      "estado": "extraido",
+      "nota": ""
+    }
+  ],
+  "totales": {
+    "subtotal": {
+      "valor": null,
+      "texto_original": "",
+      "pagina": null,
+      "ubicacion": "",
+      "confianza": "baja",
+      "estado": "no_localizado",
+      "nota": ""
+    },
+    "impuestos": [],
+    "total": {
+      "valor": null,
+      "texto_original": "",
+      "pagina": null,
+      "ubicacion": "",
+      "confianza": "baja",
+      "estado": "no_localizado",
+      "nota": ""
+    },
+    "tratamiento_impuestos": {
+      "valor": "no_indicado",
+      "texto_original": "",
+      "pagina": null,
+      "ubicacion": "",
+      "confianza": "baja",
+      "estado": "extraido",
+      "nota": "El documento no especifica el tratamiento de los impuestos."
+    }
+  },
+  "advertencias": []
+}

@@ -176,28 +176,17 @@ export default function AnalizarPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border bg-surface">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5">
-            <img
-              src="/logocd.png"
-              alt="Controlador de Documentos"
-              className="w-11 h-11 rounded-lg"
-            />
-            <span className="font-semibold text-foreground text-base">
-              Controlador de Documentos
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="nav-link text-sm text-muted hover:text-foreground transition-colors"
-          >
-            ← Volver
-          </Link>
-        </div>
-      </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 w-full">
+        <Link 
+          href="/" 
+          className="inline-flex items-center text-sm font-medium text-muted hover:text-foreground mb-8 transition-colors group"
+        >
+          <svg className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Volver al inicio
+        </Link>
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Analizar documentos
         </h1>

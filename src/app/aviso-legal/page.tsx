@@ -13,25 +13,6 @@ export const metadata: Metadata = {
 export default function AvisoLegalPage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border bg-surface">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">CD</span>
-            </div>
-            <span className="font-semibold text-foreground text-[15px]">
-              Controlador de Documentos
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            ← Volver
-          </Link>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto px-6 py-12 w-full flex-1">
         <h1 className="text-3xl font-bold text-foreground mb-6">Aviso legal</h1>
 

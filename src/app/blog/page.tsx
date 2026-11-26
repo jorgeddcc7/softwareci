@@ -49,28 +49,6 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* Header de la web */}
-      <header className="border-b border-border bg-surface">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-1.5">
-            <img
-              src="/logocd.png"
-              alt="Controlador de Documentos"
-              className="w-11 h-11 rounded-lg"
-            />
-            <span className="font-semibold text-foreground text-base">
-              Controlador de Documentos
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            ← Volver
-          </Link>
-        </div>
-      </header>
-
       <main className="max-w-6xl mx-auto px-6 py-10 w-full flex-1">
         {/* Masthead */}
         <div className="text-center mb-8">

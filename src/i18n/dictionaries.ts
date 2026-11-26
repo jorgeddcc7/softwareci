@@ -50,7 +50,7 @@ export const dictionaries = {
 
     // Footer
     footerCopyright:
-      "© 2026 Controlador de Documentos · Última actualización: octubre 2026",
+      "© 2026 Controlador de Documentos · Última actualización: noviembre 2026",
     footerWhy: "Por qué",
     footerFaq: "FAQ",
     footerContact: "Contacto",

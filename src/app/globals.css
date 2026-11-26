@@ -185,3 +185,12 @@ body {
     color: inherit;
   }
 }
+
+/* Ocultar barra de scroll en el menú móvil */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

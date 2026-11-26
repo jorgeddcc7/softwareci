@@ -86,6 +86,12 @@ export function AuthStatus() {
         </Link>
       )}
       <Link
+        href="/guardados"
+        className="text-sm text-muted hover:text-foreground transition-colors"
+      >
+        Guardados
+      </Link>
+      <Link
         href="/cuenta"
         className="nav-link text-sm text-muted hover:text-foreground transition-colors"
       >
