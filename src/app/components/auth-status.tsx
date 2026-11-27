@@ -87,9 +87,15 @@ export function AuthStatus() {
       )}
       <Link
         href="/guardados"
-        className="text-sm text-muted hover:text-foreground transition-colors"
+        className="nav-link text-sm text-muted hover:text-foreground transition-colors"
       >
         Guardados
+      </Link>
+      <Link
+        href="/cuenta/api"
+        className="nav-link text-sm text-muted hover:text-foreground transition-colors"
+      >
+        API Keys
       </Link>
       <Link
         href="/cuenta"
